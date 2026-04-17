@@ -1,26 +1,100 @@
 
 'use client';
 
+import { useState, useMemo } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
-import { MOCK_BUSINESSES } from '@/lib/mock-data';
+import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Phone, MessageSquare, BadgeCheck } from 'lucide-react';
+import { MapPin, Phone, MessageSquare, BadgeCheck, Search, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function ExplorePage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [category, setCategory] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
+  const db = useFirestore();
+
+  const businessQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    let baseQuery = collection(db, 'businesses');
+    
+    // In a real production app, you'd use composite indexes for filtering + ordering
+    // For this MVP, we rely on client-side filtering for complex search terms
+    return query(baseQuery, where('status', '==', 'active'), limit(50));
+  }, [db]);
+
+  const { data: businesses, isLoading } = useCollection(businessQuery);
+
+  const filteredBusinesses = useMemo(() => {
+    if (!businesses) return [];
+    return businesses.filter(biz => {
+      const matchesSearch = biz.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           biz.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = category === 'All' || biz.category === category;
+      return matchesSearch && matchesCategory;
+    }).sort((a, b) => {
+      if (sortBy === 'newest') return (b.createdAt || 0) - (a.createdAt || 0);
+      if (sortBy === 'verified') return (b.isVerified ? 1 : 0) - (a.isVerified ? 1 : 0);
+      return 0;
+    });
+  }, [businesses, searchTerm, category, sortBy]);
+
   return (
     <div className="min-h-screen pb-20 md:pt-20">
       <Navbar />
-      <main className="max-w-4xl mx-auto p-4">
-        <h1 className="text-2xl font-headline font-bold mb-6 text-primary">Discover Ethiopia</h1>
+      <main className="max-w-4xl mx-auto p-4 space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h1 className="text-2xl font-headline font-bold text-primary">Discover Ethiopia</h1>
+          
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search businesses..." 
+                className="pl-10 rounded-full"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-full">
+                  <SlidersHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Sort By</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={sortBy} onValueChange={setSortBy}>
+                  <DropdownMenuRadioItem value="newest">Newest First</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="verified">Verified First</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="distance">Nearest (Coming Soon)</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
         
-        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-6">
-          {['All', 'Hotels', 'Restaurants', 'Shops', 'Tourism', 'Services'].map((cat) => (
+        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
+          {['All', 'Hotel', 'Restaurant', 'Shop', 'Tourism', 'Service'].map((cat) => (
             <Badge 
               key={cat} 
-              variant={cat === 'All' ? 'default' : 'secondary'}
-              className="px-4 py-1 cursor-pointer whitespace-nowrap"
+              variant={category === cat ? 'default' : 'secondary'}
+              className="px-6 py-1.5 cursor-pointer whitespace-nowrap rounded-full transition-all"
+              onClick={() => setCategory(cat)}
             >
               {cat}
             </Badge>
@@ -28,43 +102,61 @@ export default function ExplorePage() {
         </div>
 
         <div className="grid gap-6">
-          {MOCK_BUSINESSES.map((biz) => (
-            <Card key={biz.id} className="group hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row gap-6">
-                  <div className="w-full md:w-32 h-32 bg-secondary rounded-lg flex items-center justify-center text-primary text-3xl font-headline font-bold">
-                    {biz.name[0]}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-headline font-bold">{biz.name}</h2>
-                      {biz.isVerified && <BadgeCheck className="w-5 h-5 text-primary" />}
+          {isLoading ? (
+            [1, 2, 3].map(i => (
+              <Card key={i} className="animate-pulse h-40 bg-muted/50 rounded-xl" />
+            ))
+          ) : filteredBusinesses.length ? (
+            filteredBusinesses.map((biz) => (
+              <Card key={biz.id} className="group hover:shadow-lg transition-all border-none shadow-sm overflow-hidden bg-card">
+                <CardContent className="p-0">
+                  <div className="flex flex-col md:flex-row">
+                    <div className="w-full md:w-48 h-48 bg-primary/10 flex items-center justify-center text-primary text-5xl font-headline font-bold relative">
+                      {biz.name[0]}
+                      {biz.isVerified && (
+                        <div className="absolute top-2 right-2 bg-background p-1 rounded-full shadow-sm">
+                          <BadgeCheck className="w-6 h-6 text-primary" />
+                        </div>
+                      )}
                     </div>
-                    <Badge variant="outline" className="text-primary border-primary/20">{biz.category}</Badge>
-                    <p className="text-sm text-muted-foreground">{biz.description}</p>
-                    
-                    <div className="flex flex-wrap gap-4 pt-2 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {biz.location}
+                    <div className="flex-1 p-6 space-y-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h2 className="text-xl font-headline font-bold group-hover:text-primary transition-colors">{biz.name}</h2>
+                        </div>
+                        <Badge variant="outline" className="text-xs">{biz.category}</Badge>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {biz.contact}
+                      <p className="text-sm text-muted-foreground line-clamp-2">{biz.description}</p>
+                      
+                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 bg-secondary/50 px-2 py-1 rounded">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {biz.locationDescription || 'Location TBD'}
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-secondary/50 px-2 py-1 rounded">
+                          <Phone className="w-3.5 h-3.5" />
+                          {biz.contactPhone}
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-3 pt-2">
+                        <Button className="flex-1 bg-primary">Follow</Button>
+                        <Button variant="outline" className="flex-1">
+                          <MessageSquare className="w-4 h-4 mr-2" />
+                          Contact
+                        </Button>
                       </div>
                     </div>
                   </div>
-                  <div className="flex md:flex-col gap-2 justify-end">
-                    <Button className="bg-primary flex-1 md:flex-none">Follow</Button>
-                    <Button variant="outline" className="flex-1 md:flex-none">
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Contact
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div className="text-center py-20 bg-muted/20 rounded-xl border-2 border-dashed">
+              <p className="text-muted-foreground">No businesses found matching your criteria.</p>
+              <Button variant="link" onClick={() => { setSearchTerm(''); setCategory('All'); }}>Clear filters</Button>
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -5,9 +5,10 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'user' | 'business_owner';
+  role: 'Admin' | 'NormalUser' | 'BusinessOwner';
   avatar: string;
   bio?: string;
+  status: 'active' | 'suspended';
 }
 
 export interface Business {
@@ -16,20 +17,23 @@ export interface Business {
   name: string;
   category: string;
   description: string;
-  location: string;
-  contact: string;
+  locationDescription: string;
+  contactPhone: string;
   isVerified: boolean;
   isPromoted: boolean;
+  status: 'active' | 'pending' | 'suspended';
+  createdAt: number;
 }
 
 export interface Post {
   id: string;
-  userId: string;
+  authorId: string;
   content: string;
   imageUrl?: string;
   isPromoted: boolean;
+  status: 'active' | 'moderated';
   createdAt: string;
-  likes: number;
+  likesCount: number;
   commentsCount: number;
   userName: string;
   userAvatar: string;
@@ -40,17 +44,19 @@ export const MOCK_USERS: User[] = [
     id: 'u1',
     name: 'Abebe Bikila',
     email: 'abebe@example.com',
-    role: 'user',
+    role: 'NormalUser',
     avatar: PlaceHolderImages.find(img => img.id === 'user-avatar-1')?.imageUrl || '',
-    bio: 'Avid explorer of Ethiopian culture.'
+    bio: 'Avid explorer of Ethiopian culture.',
+    status: 'active'
   },
   {
     id: 'u2',
     name: 'Sara Kedebe',
     email: 'sara@hotel.com',
-    role: 'business_owner',
+    role: 'BusinessOwner',
     avatar: PlaceHolderImages.find(img => img.id === 'user-avatar-2')?.imageUrl || '',
-    bio: 'Owner of Addis Luxury Suites.'
+    bio: 'Owner of Addis Luxury Suites.',
+    status: 'active'
   }
 ];
 
@@ -61,10 +67,12 @@ export const MOCK_BUSINESSES: Business[] = [
     name: 'Addis Luxury Suites',
     category: 'Hotel',
     description: 'The finest stay in the heart of Addis Ababa with panoramic views.',
-    location: 'Bole, Addis Ababa',
-    contact: '+251 911 223344',
+    locationDescription: 'Bole, Addis Ababa',
+    contactPhone: '+251 911 223344',
     isVerified: true,
-    isPromoted: true
+    isPromoted: true,
+    status: 'active',
+    createdAt: Date.now() - 1000000
   },
   {
     id: 'b2',
@@ -72,48 +80,40 @@ export const MOCK_BUSINESSES: Business[] = [
     name: 'Habesha Traditional Restaurant',
     category: 'Restaurant',
     description: 'Authentic Ethiopian dining experience with live traditional music.',
-    location: 'Piazza, Addis Ababa',
-    contact: '+251 922 556677',
+    locationDescription: 'Piazza, Addis Ababa',
+    contactPhone: '+251 922 556677',
     isVerified: true,
-    isPromoted: false
+    isPromoted: false,
+    status: 'active',
+    createdAt: Date.now() - 2000000
   }
 ];
 
 export const MOCK_POSTS: Post[] = [
   {
     id: 'p1',
-    userId: 'u1',
+    authorId: 'u1',
     userName: 'Abebe Bikila',
     userAvatar: MOCK_USERS[0].avatar,
     content: 'Just had the best coffee in Addis! Nothing beats the traditional ceremony. ☕🇪🇹',
     imageUrl: PlaceHolderImages.find(img => img.id === 'ethiopian-coffee')?.imageUrl,
     isPromoted: false,
+    status: 'active',
     createdAt: '2 hours ago',
-    likes: 42,
+    likesCount: 42,
     commentsCount: 5
   },
   {
     id: 'p2',
-    userId: 'u2',
+    authorId: 'u2',
     userName: 'Addis Luxury Suites',
     userAvatar: MOCK_USERS[1].avatar,
     content: 'Book your weekend getaway now and enjoy 20% off! Experience luxury like never before. ✨',
     imageUrl: PlaceHolderImages.find(img => img.id === 'addis-ababa')?.imageUrl,
     isPromoted: true,
+    status: 'active',
     createdAt: '4 hours ago',
-    likes: 128,
+    likesCount: 128,
     commentsCount: 12
-  },
-  {
-    id: 'p3',
-    userId: 'u1',
-    userName: 'Abebe Bikila',
-    userAvatar: MOCK_USERS[0].avatar,
-    content: 'The food at Habesha is incredible. Highly recommend the meat platter!',
-    imageUrl: PlaceHolderImages.find(img => img.id === 'ethiopian-food')?.imageUrl,
-    isPromoted: false,
-    createdAt: 'Yesterday',
-    likes: 89,
-    commentsCount: 8
   }
 ];

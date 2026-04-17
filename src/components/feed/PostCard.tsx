@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -19,7 +18,7 @@ export function PostCard({ post }: PostCardProps) {
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8 ring-2 ring-primary/10">
             <AvatarImage src={post.userAvatar} />
-            <AvatarFallback>{post.userName[0]}</AvatarFallback>
+            <AvatarFallback>{post.userName?.[0] || 'U'}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
             <div className="flex items-center gap-1">
@@ -58,13 +57,13 @@ export function PostCard({ post }: PostCardProps) {
             <button className="hover:opacity-60 transition-opacity"><Bookmark className="w-6 h-6" /></button>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-bold">{post.likes.toLocaleString()} likes</p>
+            <p className="text-sm font-bold">{(post.likesCount || 0).toLocaleString()} likes</p>
             <p className="text-sm leading-relaxed">
               <span className="font-bold mr-2">{post.userName}</span>
               {post.content}
             </p>
             <button className="text-sm text-muted-foreground mt-1">
-              View all {post.commentsCount} comments
+              View all {post.commentsCount || 0} comments
             </button>
           </div>
         </div>

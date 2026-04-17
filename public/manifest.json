@@ -1,0 +1,22 @@
+
+{
+  "name": "EthioConnect",
+  "short_name": "EthioConnect",
+  "description": "Discover Ethiopian businesses and community.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ae6f22",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/ethio/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/seed/ethio/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
