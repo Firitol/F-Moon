@@ -5,14 +5,8 @@ rules_version = '2';
  * F-MOON FIRESTORE SECURITY RULES
  *
  * Core Philosophy:
- * This ruleset implements a robust, multi-tiered authorization model designed for a social 
- * business directory. It prioritizes User Ownership and Global Admin privileges. 
- *
- * Data Structure:
- * - /users: Private account data (Owner/Admin access).
- * - /public_user_profiles: Public-facing profile data (Public read, Owner/Admin write).
- * - /admin_roles: A lookup collection where document existence signifies global admin status.
- * - /businesses, /posts, /follows, /reports, /payments, /notifications: Root collections.
+ * This ruleset implements a robust, multi-tiered authorization model. 
+ * It prioritizes User Ownership and Global Admin privileges. 
  */
 
 service cloud.firestore {
@@ -181,11 +175,11 @@ service cloud.firestore {
      * @description Real-time notifications for users.
      */
     match /notifications/{notificationId} {
-      allow get: if isSignedIn() && (resource == null || resource.data.recipientId == request.auth.uid);
-      allow list: if isSignedIn() && request.query.recipientId == request.auth.uid;
-      allow create: if isSignedIn(); // Allow system or other users (likes/follows) to create notifications
-      allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+      allow get: if isAdmin() || (isSignedIn() && (resource == null || resource.data.recipientId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && request.query.recipientId == request.auth.uid);
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isExistingOwner(resource.data.recipientId));
+      allow delete: if isAdmin() || (isExistingOwner(resource.data.recipientId));
     }
   }
 }
