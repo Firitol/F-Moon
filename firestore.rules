@@ -6,7 +6,7 @@ rules_version = '2';
  * EMERGENCY RESET: This configuration removes ALL security checks.
  * Every user (authenticated or guest) has full read/write access to every document.
  *
- * DEPLOYMENT_FORCE_ID: 2024_05_22_FORCE_CLEAN_RESTART_999
+ * DEPLOYMENT_FORCE_ID: 2024_05_22_FORCE_CLEAN_RESTART_999_FINAL_OVERRIDE
  */
 
 service cloud.firestore {

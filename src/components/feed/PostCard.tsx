@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -56,7 +55,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
               className="object-cover"
               data-ai-hint="post image"
               priority={priority}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 600px"
             />
           </div>
         )}
