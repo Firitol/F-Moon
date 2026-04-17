@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Navbar } from '@/components/layout/Navbar';
@@ -40,18 +39,23 @@ export default function BusinessDashboard() {
       <Navbar />
       <main className="max-w-6xl mx-auto p-4 space-y-12">
         <section className="text-center space-y-4">
-          <h1 className="text-4xl font-headline font-bold text-primary">Grow Your Business with EthioConnect</h1>
+          <h1 className="text-4xl font-headline font-bold text-primary animate-in fade-in slide-in-from-top-4 duration-700">Grow Your Business with F-Moon</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Connect with thousands of potential customers in your local Ethiopian community.
             Boost your visibility with our powerful promotional tools.
           </p>
         </section>
 
-        <section className="grid md:grid-cols-3 gap-8">
+        <section className="grid md:grid-cols-3 gap-8 px-4">
           {PLANS.map((plan) => (
-            <Card key={plan.name} className={`flex flex-col ${plan.primary ? 'border-primary ring-2 ring-primary/20 shadow-xl scale-105 z-10' : ''}`}>
+            <Card 
+              key={plan.name} 
+              className={`flex flex-col transition-all duration-300 hover:translate-y-[-8px] hover:shadow-2xl ${
+                plan.primary ? 'border-primary ring-2 ring-primary/20 shadow-xl scale-105 z-10' : 'hover:border-primary/50'
+              }`}
+            >
               <CardHeader className="text-center">
-                <div className="mx-auto mb-4 p-3 bg-secondary rounded-full w-fit">
+                <div className="mx-auto mb-4 p-3 bg-secondary rounded-full w-fit group-hover:scale-110 transition-transform">
                   {plan.icon}
                 </div>
                 <CardTitle className="text-2xl">{plan.name}</CardTitle>
@@ -66,7 +70,7 @@ export default function BusinessDashboard() {
                 ))}
               </CardContent>
               <CardFooter>
-                <Button className="w-full" variant={plan.primary ? 'default' : 'outline'}>
+                <Button className={`w-full font-bold transition-all ${plan.primary ? 'bg-primary hover:bg-primary/90' : 'hover:bg-secondary'}`} variant={plan.primary ? 'default' : 'outline'}>
                   {plan.cta}
                 </Button>
               </CardFooter>
@@ -74,38 +78,49 @@ export default function BusinessDashboard() {
           ))}
         </section>
 
-        <section className="bg-card rounded-2xl p-8 border">
+        <section className="bg-card rounded-2xl p-8 border transition-all hover:shadow-lg">
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
+            <div className="space-y-4">
               <h2 className="text-3xl font-headline font-bold mb-4">Master Your Marketing</h2>
               <p className="text-muted-foreground mb-6">
                 Use our AI-powered promotional text generator to create catchy, high-converting posts
                 that resonate with the Ethiopian market.
               </p>
               <ul className="space-y-3">
-                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary" /> Save hours of creative writing</li>
-                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary" /> Professional copy in seconds</li>
-                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary" /> Optimized for Telebirr/Chapa promos</li>
+                <li className="flex items-center gap-2 group cursor-default">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary transition-transform group-hover:scale-150" /> 
+                  <span className="group-hover:text-primary transition-colors">Save hours of creative writing</span>
+                </li>
+                <li className="flex items-center gap-2 group cursor-default">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary transition-transform group-hover:scale-150" />
+                  <span className="group-hover:text-primary transition-colors">Professional copy in seconds</span>
+                </li>
+                <li className="flex items-center gap-2 group cursor-default">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary transition-transform group-hover:scale-150" />
+                  <span className="group-hover:text-primary transition-colors">Optimized for local platforms</span>
+                </li>
               </ul>
             </div>
-            <PromotionGenerator />
+            <div className="transition-transform hover:scale-[1.01]">
+              <PromotionGenerator />
+            </div>
           </div>
         </section>
 
         <section className="text-center space-y-8 py-12">
           <h3 className="text-2xl font-headline font-bold">Supported Ethiopian Payment Methods</h3>
-          <div className="flex flex-wrap justify-center gap-8 opacity-70 grayscale hover:grayscale-0 transition-all">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-20 h-10 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">Telebirr</div>
-              <span className="text-xs">Telebirr</span>
+          <div className="flex flex-wrap justify-center gap-8 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
+            <div className="flex flex-col items-center gap-2 hover:scale-110 transition-transform">
+              <div className="w-20 h-10 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs shadow-md">Telebirr</div>
+              <span className="text-xs font-medium">Telebirr</span>
             </div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-20 h-10 bg-orange-600 rounded flex items-center justify-center text-white font-bold text-xs">CBE BIRR</div>
-              <span className="text-xs">CBE Birr</span>
+            <div className="flex flex-col items-center gap-2 hover:scale-110 transition-transform">
+              <div className="w-20 h-10 bg-orange-600 rounded flex items-center justify-center text-white font-bold text-xs shadow-md">CBE BIRR</div>
+              <span className="text-xs font-medium">CBE Birr</span>
             </div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-20 h-10 bg-green-600 rounded flex items-center justify-center text-white font-bold text-xs italic">Chapa</div>
-              <span className="text-xs">Chapa API</span>
+            <div className="flex flex-col items-center gap-2 hover:scale-110 transition-transform">
+              <div className="w-20 h-10 bg-green-600 rounded flex items-center justify-center text-white font-bold text-xs italic shadow-md">Chapa</div>
+              <span className="text-xs font-medium">Chapa</span>
             </div>
           </div>
         </section>

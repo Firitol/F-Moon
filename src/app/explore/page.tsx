@@ -1,13 +1,12 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, limit } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Phone, MessageSquare, BadgeCheck, Search, SlidersHorizontal } from 'lucide-react';
+import { MapPin, Phone, MessageSquare, BadgeCheck, Search, SlidersHorizontal, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -19,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Link from 'next/link';
 
 export default function ExplorePage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,9 +29,6 @@ export default function ExplorePage() {
   const businessQuery = useMemoFirebase(() => {
     if (!db) return null;
     let baseQuery = collection(db, 'businesses');
-    
-    // In a real production app, you'd use composite indexes for filtering + ordering
-    // For this MVP, we rely on client-side filtering for complex search terms
     return query(baseQuery, where('status', '==', 'active'), limit(50));
   }, [db]);
 
@@ -63,7 +60,7 @@ export default function ExplorePage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Search businesses..." 
-                className="pl-10 rounded-full"
+                className="pl-10 rounded-full focus:ring-primary focus:border-primary"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -71,7 +68,7 @@ export default function ExplorePage() {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-full">
+                <Button variant="outline" size="icon" className="rounded-full hover:bg-secondary transition-colors">
                   <SlidersHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -81,19 +78,20 @@ export default function ExplorePage() {
                 <DropdownMenuRadioGroup value={sortBy} onValueChange={setSortBy}>
                   <DropdownMenuRadioItem value="newest">Newest First</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="verified">Verified First</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="distance">Nearest (Coming Soon)</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
         
-        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide no-scrollbar">
           {['All', 'Hotel', 'Restaurant', 'Shop', 'Tourism', 'Service'].map((cat) => (
             <Badge 
               key={cat} 
               variant={category === cat ? 'default' : 'secondary'}
-              className="px-6 py-1.5 cursor-pointer whitespace-nowrap rounded-full transition-all"
+              className={`px-6 py-1.5 cursor-pointer whitespace-nowrap rounded-full transition-all hover:scale-105 active:scale-95 ${
+                category === cat ? 'shadow-md' : 'hover:bg-muted'
+              }`}
               onClick={() => setCategory(cat)}
             >
               {cat}
@@ -108,48 +106,54 @@ export default function ExplorePage() {
             ))
           ) : filteredBusinesses.length ? (
             filteredBusinesses.map((biz) => (
-              <Card key={biz.id} className="group hover:shadow-lg transition-all border-none shadow-sm overflow-hidden bg-card">
-                <CardContent className="p-0">
-                  <div className="flex flex-col md:flex-row">
-                    <div className="w-full md:w-48 h-48 bg-primary/10 flex items-center justify-center text-primary text-5xl font-headline font-bold relative">
-                      {biz.name[0]}
-                      {biz.isVerified && (
-                        <div className="absolute top-2 right-2 bg-background p-1 rounded-full shadow-sm">
-                          <BadgeCheck className="w-6 h-6 text-primary" />
+              <Link href={`/business/${biz.id}`} key={biz.id} className="block group">
+                <Card className="hover:shadow-xl transition-all duration-300 border-none shadow-sm overflow-hidden bg-card hover:translate-y-[-2px] hover:ring-1 hover:ring-primary/10">
+                  <CardContent className="p-0">
+                    <div className="flex flex-col md:flex-row">
+                      <div className="w-full md:w-48 h-48 bg-primary/10 flex items-center justify-center text-primary text-5xl font-headline font-bold relative transition-transform group-hover:scale-[1.02]">
+                        {biz.name[0]}
+                        {biz.isVerified && (
+                          <div className="absolute top-2 right-2 bg-background p-1 rounded-full shadow-sm animate-in zoom-in-50 duration-500">
+                            <BadgeCheck className="w-6 h-6 text-primary" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 p-6 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h2 className="text-xl font-headline font-bold group-hover:text-primary transition-colors">{biz.name}</h2>
+                            </div>
+                            <Badge variant="outline" className="text-xs group-hover:border-primary/50 group-hover:text-primary transition-all">{biz.category}</Badge>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                         </div>
-                      )}
+                        
+                        <p className="text-sm text-muted-foreground line-clamp-2">{biz.description}</p>
+                        
+                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1.5 bg-secondary/50 px-2 py-1 rounded transition-colors group-hover:bg-primary/5">
+                            <MapPin className="w-3.5 h-3.5 group-hover:text-primary" />
+                            {biz.locationDescription || 'Location TBD'}
+                          </div>
+                          <div className="flex items-center gap-1.5 bg-secondary/50 px-2 py-1 rounded transition-colors group-hover:bg-primary/5">
+                            <Phone className="w-3.5 h-3.5 group-hover:text-primary" />
+                            {biz.contactPhone}
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-3 pt-2">
+                          <Button className="flex-1 bg-primary hover:scale-[1.02] transition-transform">Follow</Button>
+                          <Button variant="outline" className="flex-1 hover:bg-secondary transition-colors">
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            Contact
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 p-6 space-y-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h2 className="text-xl font-headline font-bold group-hover:text-primary transition-colors">{biz.name}</h2>
-                        </div>
-                        <Badge variant="outline" className="text-xs">{biz.category}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{biz.description}</p>
-                      
-                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1.5 bg-secondary/50 px-2 py-1 rounded">
-                          <MapPin className="w-3.5 h-3.5" />
-                          {biz.locationDescription || 'Location TBD'}
-                        </div>
-                        <div className="flex items-center gap-1.5 bg-secondary/50 px-2 py-1 rounded">
-                          <Phone className="w-3.5 h-3.5" />
-                          {biz.contactPhone}
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-3 pt-2">
-                        <Button className="flex-1 bg-primary">Follow</Button>
-                        <Button variant="outline" className="flex-1">
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          Contact
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             ))
           ) : (
             <div className="text-center py-20 bg-muted/20 rounded-xl border-2 border-dashed">
