@@ -1,6 +1,6 @@
-
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Home, Compass, PlusSquare, User, Bell, Search, Briefcase, MessageSquare, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,11 +9,17 @@ import { Logo } from '@/components/layout/Logo';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 export function Navbar() {
   const { user } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -50,16 +56,28 @@ export function Navbar() {
           <Link href="/explore" className="text-muted-foreground hover:text-primary transition-colors" title="Explore">
             <Compass className="w-6 h-6" />
           </Link>
-          <Link href="/messages" className="text-muted-foreground hover:text-primary transition-colors relative" title="Messages">
+          <Link 
+            href="/messages" 
+            className={cn("text-muted-foreground hover:text-primary transition-colors", mounted && "relative")} 
+            title="Messages"
+          >
             <MessageSquare className="w-6 h-6" />
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full border-2 border-background" />
+            {mounted && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full border-2 border-background" />
+            )}
           </Link>
           <Link href="/business/dashboard" className="text-muted-foreground hover:text-primary transition-colors" title="Business Hub">
             <Briefcase className="w-6 h-6" />
           </Link>
-          <Link href="/notifications" className="text-muted-foreground hover:text-primary transition-colors relative" title="Notifications">
+          <Link 
+            href="/notifications" 
+            className={cn("text-muted-foreground hover:text-primary transition-colors", mounted && "relative")} 
+            title="Notifications"
+          >
             <Bell className="w-6 h-6" />
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full border-2 border-background" />
+            {mounted && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full border-2 border-background" />
+            )}
           </Link>
           <Link href="/profile" className="text-muted-foreground hover:text-primary transition-colors" title="My Profile">
             <User className="w-6 h-6" />
@@ -95,7 +113,9 @@ export function Navbar() {
             <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
               <MessageSquare className="w-5 h-5" />
             </Button>
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full border-2 border-background" />
+            {mounted && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full border-2 border-background" />
+            )}
           </Link>
         </div>
       </header>
@@ -115,7 +135,9 @@ export function Navbar() {
         </Link>
         <Link href="/notifications" className="p-2 text-muted-foreground active:text-primary transition-colors relative">
           <Bell className="w-6 h-6" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-background" />
+          {mounted && (
+            <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-background" />
+          )}
         </Link>
         <Link href="/profile" className="p-2 text-muted-foreground active:text-primary transition-colors">
           <User className="w-6 h-6" />

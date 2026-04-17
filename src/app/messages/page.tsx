@@ -1,7 +1,7 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { 
@@ -30,7 +30,12 @@ export default function MessagesPage() {
   const [activePartnerId, setActivePartnerId] = useState<string | null>(null);
   const [activePartner, setActivePartner] = useState<any>(null);
   const [newMessage, setNewMessage] = useState('');
+  const [mounted, setMounted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // 1. Get Friendships (connections allowed to chat)
   const friendshipQuery = useMemoFirebase(() => {
@@ -223,7 +228,7 @@ export default function MessagesPage() {
                         }`}>
                           <p className="leading-relaxed">{msg.content}</p>
                           <p className={`text-[10px] mt-1 opacity-60 font-medium ${isMe ? 'text-right' : 'text-left'}`}>
-                            {msg.createdAt ? formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true }) : 'Sending...'}
+                            {mounted && msg.createdAt ? formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true }) : 'Sending...'}
                           </p>
                         </div>
                       </div>

@@ -1,16 +1,22 @@
-
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { useUser, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, MessageSquare, UserPlus, Bell } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function NotificationsPage() {
   const { user } = useUser();
   const db = useFirestore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const notificationsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -61,7 +67,7 @@ export default function NotificationsPage() {
                       {notif.message}
                     </p>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">
-                      {notif.createdAt ? new Date(notif.createdAt).toLocaleDateString() : 'Just now'}
+                      {mounted && notif.createdAt ? formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true }) : 'Just now'}
                     </p>
                   </div>
                   {!notif.read && (
