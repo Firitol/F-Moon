@@ -12,9 +12,7 @@ rules_version = '2';
  * - /users: Private account data (Owner/Admin access).
  * - /public_user_profiles: Public-facing profile data (Public read, Owner/Admin write).
  * - /admin_roles: A lookup collection where document existence signifies global admin status.
- * - /businesses, /posts, /follows, /reports, /payments: Root collections utilizing 
- *   denormalized ownership IDs (ownerId, authorId, reporterId, userId) for fast, 
- *   independent authorization.
+ * - /businesses, /posts, /follows, /reports, /payments, /notifications: Root collections.
  */
 
 service cloud.firestore {
@@ -72,11 +70,11 @@ service cloud.firestore {
 
     /**
      * @description Marker collection for administrator privileges.
-     * Allow get for the owner so they can verify their own status without permission errors.
      */
     match /admin_roles/{adminId} {
       allow get: if isOwner(adminId) || isAdmin();
-      allow list, write: if isAdmin();
+      allow list: if isAdmin();
+      allow write: if isAdmin();
     }
 
     /**
@@ -88,11 +86,14 @@ service cloud.firestore {
     }
 
     /**
-     * @description Business profiles. Owners can manage, admins can moderate.
+     * @description Business profiles. 
      */
     match /businesses/{businessId} {
       allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.ownerId);
-      allow list: if isAdmin() || request.query.status == 'active' || (isSignedIn() && request.query.ownerId == request.auth.uid);
+      // QAP: List if admin, or querying for 'active' businesses, or querying for own businesses.
+      allow list: if isAdmin() 
+                  || request.query.status == 'active' 
+                  || (isSignedIn() && request.query.ownerId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if (isExistingOwner(resource.data.ownerId) && isUnchanged('ownerId')) || isAdmin();
       allow delete: if isAdmin();
@@ -107,7 +108,7 @@ service cloud.firestore {
     }
 
     /**
-     * @description Business subscriptions. Uses denormalized ownerId for auth.
+     * @description Business subscriptions.
      */
     match /business_subscriptions/{subscriptionId} {
       allow get: if resource == null || isOwner(resource.data.ownerId) || isAdmin();
@@ -117,18 +118,18 @@ service cloud.firestore {
     }
 
     /**
-     * @description User-generated posts. Supports public viewing of active posts.
+     * @description User-generated posts.
      */
     match /posts/{postId} {
       allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.authorId);
-      allow list: if isAdmin() || request.query.status == 'active' || (isSignedIn() && request.query.authorId == request.auth.uid);
+      // QAP: List if admin, or querying for 'active' posts, or querying for own posts.
+      allow list: if isAdmin() 
+                  || request.query.status == 'active' 
+                  || (isSignedIn() && request.query.authorId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       allow update: if (isExistingOwner(resource.data.authorId) && isUnchanged('authorId')) || isAdmin();
       allow delete: if isExistingOwner(resource.data.authorId) || isAdmin();
 
-      /**
-       * @description Comments on posts. Uses denormalized postStatus for public reads.
-       */
       match /comments/{commentId} {
         allow get: if resource == null || isAdmin() || (resource.data.status == 'active' && resource.data.postStatus == 'active') || isOwner(resource.data.authorId);
         allow list: if isAdmin() || (request.query.status == 'active' && request.query.postStatus == 'active');
@@ -137,12 +138,8 @@ service cloud.firestore {
         allow delete: if isExistingOwner(resource.data.authorId) || isAdmin();
       }
 
-      /**
-       * @description Post likes. Document ID is the userId for uniqueness.
-       */
       match /likes/{userId} {
-        allow get: if true;
-        allow list: if true;
+        allow get, list: if true;
         allow create: if isOwner(userId);
         allow delete: if isExistingOwner(userId) || isAdmin();
         allow update: if false;
@@ -170,7 +167,7 @@ service cloud.firestore {
     }
 
     /**
-     * @description Moderation reports. Reporters can see their own.
+     * @description Moderation reports.
      */
     match /reports/{reportId} {
       allow get: if resource == null || isOwner(resource.data.reporterId) || isAdmin();
@@ -178,6 +175,17 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
       allow update: if isExistingOwner(resource.data.reporterId) || isAdmin();
       allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Real-time notifications for users.
+     */
+    match /notifications/{notificationId} {
+      allow get: if isSignedIn() && (resource == null || resource.data.recipientId == request.auth.uid);
+      allow list: if isSignedIn() && request.query.recipientId == request.auth.uid;
+      allow create: if isSignedIn(); // Allow system or other users (likes/follows) to create notifications
+      allow update: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.recipientId == request.auth.uid;
     }
   }
 }
