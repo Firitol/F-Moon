@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { 
@@ -17,8 +17,6 @@ import {
   collection, 
   query, 
   where, 
-  orderBy, 
-  limit, 
   doc, 
   getDoc,
 } from 'firebase/firestore';
@@ -130,27 +128,42 @@ function MessagesContent() {
     if (!db || !user) return null;
     return query(
       collection(db, 'conversations'),
-      where('participants', 'array-contains', user.uid),
-      orderBy('lastMessageAt', 'desc')
+      where('participants', 'array-contains', user.uid)
     );
   }, [db, user]);
 
-  const { data: conversations, isLoading: isConversationsLoading } = useCollection(convQuery);
+  const { data: rawConversations, isLoading: isConversationsLoading } = useCollection(convQuery);
+
+  const conversations = useMemo(() => {
+    if (!rawConversations) return [];
+    return [...rawConversations].sort((a, b) => {
+      const dateA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const dateB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [rawConversations]);
 
   const messageQuery = useMemoFirebase(() => {
     if (!db || !activeConversationId) return null;
     return query(
       collection(db, 'messages'),
-      where('conversationId', '==', activeConversationId),
-      orderBy('createdAt', 'asc'),
-      limit(100)
+      where('conversationId', '==', activeConversationId)
     );
   }, [db, activeConversationId]);
 
-  const { data: messages } = useCollection(messageQuery);
+  const { data: rawMessages } = useCollection(messageQuery);
+
+  const messages = useMemo(() => {
+    if (!rawMessages) return [];
+    return [...rawMessages].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateA - dateB;
+    });
+  }, [rawMessages]);
 
   useEffect(() => {
-    if (messages && user && db) {
+    if (messages.length > 0 && user && db) {
       messages.forEach(msg => {
         if (msg.receiverId === user.uid && !msg.isRead) {
           updateDocumentNonBlocking(doc(db, 'messages', msg.id), { isRead: true });

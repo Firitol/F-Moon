@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Home, Compass, PlusSquare, User, Bell, Search, Briefcase, MessageSquare, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,21 +25,28 @@ export function Navbar() {
     setMounted(true);
   }, []);
 
-  // Real-time unread notification check
-  const unreadNotifsQuery = useMemoFirebase(() => {
+  // Simplified queries to avoid composite index requirements
+  const notifsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    return query(collection(db, 'notifications'), where('recipientId', '==', user.uid), where('read', '==', false));
+    return query(collection(db, 'notifications'), where('recipientId', '==', user.uid));
   }, [db, user]);
-  const { data: unreadNotifs } = useCollection(unreadNotifsQuery);
-  const hasUnreadNotifs = mounted && (unreadNotifs?.length || 0) > 0;
+  const { data: allNotifs } = useCollection(notifsQuery);
+  
+  const hasUnreadNotifs = useMemo(() => {
+    if (!mounted || !allNotifs) return false;
+    return allNotifs.some(n => !n.read);
+  }, [mounted, allNotifs]);
 
-  // Real-time unread messages check
-  const unreadMessagesQuery = useMemoFirebase(() => {
+  const messagesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    return query(collection(db, 'messages'), where('receiverId', '==', user.uid), where('isRead', '==', false));
+    return query(collection(db, 'messages'), where('receiverId', '==', user.uid));
   }, [db, user]);
-  const { data: unreadMessages } = useCollection(unreadMessagesQuery);
-  const hasUnreadMessages = mounted && (unreadMessages?.length || 0) > 0;
+  const { data: allMessages } = useCollection(messagesQuery);
+
+  const hasUnreadMessages = useMemo(() => {
+    if (!mounted || !allMessages) return false;
+    return allMessages.some(m => !m.isRead);
+  }, [mounted, allMessages]);
 
   const handleLogout = async () => {
     try {

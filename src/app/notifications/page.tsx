@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { useUser, useCollection, useMemoFirebase, useFirestore, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, orderBy, limit, doc } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, MessageSquare, UserPlus, Bell } from 'lucide-react';
@@ -19,20 +19,29 @@ export default function NotificationsPage() {
     setMounted(true);
   }, []);
 
+  // Simplified query to avoid index requirements
   const notificationsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
       collection(db, 'notifications'),
-      where('recipientId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-      limit(20)
+      where('recipientId', '==', user.uid)
     );
   }, [db, user]);
 
-  const { data: notifications, isLoading } = useCollection(notificationsQuery);
+  const { data: rawNotifications, isLoading } = useCollection(notificationsQuery);
+
+  // Client-side sorting and limiting
+  const notifications = useMemo(() => {
+    if (!rawNotifications) return [];
+    return [...rawNotifications].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    }).slice(0, 50);
+  }, [rawNotifications]);
 
   useEffect(() => {
-    if (notifications && db && user) {
+    if (notifications.length > 0 && db && user) {
       notifications.forEach(notif => {
         if (!notif.read) {
           updateDocumentNonBlocking(doc(db, 'notifications', notif.id), { read: true });
@@ -48,6 +57,7 @@ export default function NotificationsPage() {
       case 'follow': return <UserPlus className="w-4 h-4 text-blue-500" />;
       case 'friend_request': return <UserPlus className="w-4 h-4 text-orange-500" />;
       case 'friend_accept': return <UserPlus className="w-4 h-4 text-green-500" />;
+      case 'message': return <MessageSquare className="w-4 h-4 text-primary" />;
       default: return <Bell className="w-4 h-4 text-muted-foreground" />;
     }
   };
