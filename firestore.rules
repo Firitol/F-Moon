@@ -1,9 +1,12 @@
 rules_version = '2';
 
 /**
- * FIRESTORE SECURITY RULES - FULL PUBLIC ACCESS (DEVELOPMENT MODE)
- * Deployment Trigger: 2024-05-22T09:15:00Z
- * This configuration allows anyone with your database reference to view, edit, and delete all data.
+ * FIRESTORE SECURITY RULES - GLOBAL UNRESTRICTED ACCESS
+ * 
+ * EMERGENCY RESET: This configuration removes ALL security checks.
+ * Every user (authenticated or guest) has full read/write access to every document.
+ *
+ * DEPLOYMENT_FORCE_ID: 2024_05_22_FORCE_CLEAN_RESTART_999
  */
 
 service cloud.firestore {
