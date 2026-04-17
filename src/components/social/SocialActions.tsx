@@ -1,20 +1,16 @@
 'use client';
 
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { 
   collection, 
   query, 
   where, 
-  addDoc, 
-  deleteDoc, 
   doc, 
-  getDocs,
-  updateDoc
+  getDocs
 } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { UserPlus, UserCheck, UserX, UserMinus, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
@@ -59,9 +55,9 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
   const { data: friendships } = useCollection(friendshipQuery);
   const isFriend = friendships?.some(f => f.participants.includes(targetUserId));
 
-  const createNotification = async (type: 'follow' | 'friend_request' | 'friend_accept', message: string) => {
+  const createNotification = (type: 'follow' | 'friend_request' | 'friend_accept', message: string) => {
     if (!db || !user) return;
-    addDoc(collection(db, 'notifications'), {
+    addDocumentNonBlocking(collection(db, 'notifications'), {
       recipientId: targetUserId,
       actorId: user.uid,
       actorName: user.displayName || 'Someone',
@@ -80,10 +76,10 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
     }
     if (isFollowing) {
       const snap = await getDocs(followQuery!);
-      snap.forEach(d => deleteDoc(d.ref));
+      snap.forEach(d => deleteDocumentNonBlocking(d.ref));
       toast({ title: "Unfollowed" });
     } else {
-      addDoc(collection(db, 'follows'), {
+      addDocumentNonBlocking(collection(db, 'follows'), {
         followerId: user.uid,
         followingId: targetUserId,
         createdAt: new Date().toISOString()
@@ -93,16 +89,16 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
     }
   };
 
-  const handleFriendRequest = async () => {
+  const handleFriendRequest = () => {
     if (!db || !user) {
       toast({ title: "Auth Required", description: "Please sign in to add friends." });
       return;
     }
     if (outgoingRequest) {
-      deleteDoc(doc(db, 'friend_requests', outgoingRequest.id));
+      deleteDocumentNonBlocking(doc(db, 'friend_requests', outgoingRequest.id));
       toast({ title: "Request Cancelled" });
     } else {
-      addDoc(collection(db, 'friend_requests'), {
+      addDocumentNonBlocking(collection(db, 'friend_requests'), {
         senderId: user.uid,
         receiverId: targetUserId,
         participants: [user.uid, targetUserId],
@@ -114,15 +110,15 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
     }
   };
 
-  const acceptRequest = async () => {
+  const acceptRequest = () => {
     if (!db || !user || !incomingRequest) return;
     
-    addDoc(collection(db, 'friendships'), {
+    addDocumentNonBlocking(collection(db, 'friendships'), {
       participants: [user.uid, targetUserId],
       createdAt: new Date().toISOString()
     });
 
-    updateDoc(doc(db, 'friend_requests', incomingRequest.id), { status: 'accepted' });
+    updateDocumentNonBlocking(doc(db, 'friend_requests', incomingRequest.id), { status: 'accepted' });
     createNotification('friend_accept', 'accepted your friend request');
     toast({ title: "Friendship Established!" });
   };

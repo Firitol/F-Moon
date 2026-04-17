@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ProfileHoverCard } from '@/components/profile/ProfileHoverCard';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, deleteDoc, updateDoc, increment, collection } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { doc, increment, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -44,87 +44,83 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   const { data: bookmarkData } = useDoc(bookmarkRef);
   const isBookmarked = !!bookmarkData;
 
-  const handleLike = async () => {
+  const handleLike = () => {
     if (!db || !user) {
       toast({ title: "Auth Required", description: "Please log in to like posts." });
       return;
     }
-    setIsLiking(true);
-    try {
-      const postRef = doc(db, 'posts', post.id);
-      if (isLiked) {
-        await deleteDoc(likeRef!);
-        await updateDoc(postRef, { likesCount: increment(-1) });
-      } else {
-        await setDoc(likeRef!, {
-          postId: post.id,
-          userId: user.uid,
+    
+    const postRef = doc(db, 'posts', post.id);
+    
+    if (isLiked) {
+      deleteDocumentNonBlocking(likeRef!);
+      updateDocumentNonBlocking(postRef, { likesCount: increment(-1) });
+    } else {
+      setDocumentNonBlocking(likeRef!, {
+        postId: post.id,
+        userId: user.uid,
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+      
+      updateDocumentNonBlocking(postRef, { likesCount: increment(1) });
+      
+      // Notify author
+      if (post.authorId !== user.uid) {
+        addDocumentNonBlocking(collection(db, 'notifications'), {
+          recipientId: post.authorId,
+          actorId: user.uid,
+          actorName: user.displayName || 'Someone',
+          actorAvatar: user.photoURL || '',
+          type: 'like',
+          message: 'liked your post',
+          read: false,
           createdAt: new Date().toISOString()
         });
-        await updateDoc(postRef, { likesCount: increment(1) });
-        
-        // Notify author
-        if (post.authorId !== user.uid) {
-          await setDoc(doc(collection(db, 'notifications')), {
-            recipientId: post.authorId,
-            actorId: user.uid,
-            actorName: user.displayName || 'Someone',
-            actorAvatar: user.photoURL || '',
-            type: 'like',
-            message: 'liked your post',
-            read: false,
-            createdAt: new Date().toISOString()
-          });
-        }
       }
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setIsLiking(false);
     }
   };
 
-  const handleBookmark = async () => {
+  const handleBookmark = () => {
     if (!db || !user) {
       toast({ title: "Auth Required", description: "Please log in to save posts." });
       return;
     }
-    setIsBookmarking(true);
-    try {
-      if (isBookmarked) {
-        await deleteDoc(bookmarkRef!);
-        toast({ title: "Removed from Saved" });
-      } else {
-        await setDoc(bookmarkRef!, {
-          postId: post.id,
-          userId: user.uid,
-          postData: post, // Cache post data for the saved tab
-          createdAt: new Date().toISOString()
-        });
-        toast({ title: "Saved to Bookmarks" });
-      }
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setIsBookmarking(false);
+    
+    if (isBookmarked) {
+      deleteDocumentNonBlocking(bookmarkRef!);
+      toast({ title: "Removed from Saved" });
+    } else {
+      setDocumentNonBlocking(bookmarkRef!, {
+        postId: post.id,
+        userId: user.uid,
+        postData: post,
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+      toast({ title: "Saved to Bookmarks" });
     }
   };
 
   const handleShare = async () => {
     const url = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) {
+    
+    if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
           title: 'Check out this post on F-Moon',
           text: post.content,
           url: url,
         });
+        return;
       } catch (err) {
-        console.error('Error sharing:', err);
+        // Fall back to clipboard copy if share is denied or fails
       }
-    } else {
-      navigator.clipboard.writeText(url);
+    }
+    
+    try {
+      await navigator.clipboard.writeText(url);
       toast({ title: "Link Copied", description: "Share it with your friends!" });
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to copy link.", variant: "destructive" });
     }
   };
 
@@ -193,7 +189,6 @@ export function PostCard({ post, priority = false }: PostCardProps) {
             <div className="flex items-center gap-4">
               <button 
                 onClick={handleLike} 
-                disabled={isLiking}
                 className={cn("transition-all active:scale-125", isLiked ? "text-accent" : "hover:opacity-60")}
               >
                 <Heart className={cn("w-6 h-6", isLiked && "fill-current")} />
@@ -207,7 +202,6 @@ export function PostCard({ post, priority = false }: PostCardProps) {
             </div>
             <button 
               onClick={handleBookmark} 
-              disabled={isBookmarking}
               className={cn("transition-all active:scale-125", isBookmarked ? "text-primary" : "hover:opacity-60")}
             >
               <Bookmark className={cn("w-6 h-6", isBookmarked && "fill-current")} />

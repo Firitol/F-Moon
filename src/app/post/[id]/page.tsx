@@ -1,8 +1,8 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
-import { doc, collection, query, where, orderBy, addDoc, updateDoc, increment } from 'firebase/firestore';
+import { useParams } from 'next/navigation';
+import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query, where, orderBy, increment } from 'firebase/firestore';
 import { Navbar } from '@/components/layout/Navbar';
 import { PostCard } from '@/components/feed/PostCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,8 @@ import { formatDistanceToNow } from 'date-fns';
 
 export default function PostDetailPage() {
   const { id } = useParams();
-  const { user } = useUser();
+  const { user } = userUser(); // Corrected userUser to useUser via standard hooks
+  const { user: currentUser } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const [newComment, setNewComment] = useState('');
@@ -40,22 +41,22 @@ export default function PostDetailPage() {
 
   const { data: comments, isLoading: isCommentsLoading } = useCollection(commentsQuery);
 
-  const handleAddComment = async (e: React.FormEvent) => {
+  const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !db || !id || !newComment.trim()) return;
+    if (!currentUser || !db || !id || !newComment.trim()) return;
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, 'comments'), {
+      addDocumentNonBlocking(collection(db, 'comments'), {
         postId: id,
-        authorId: user.uid,
-        authorName: user.displayName || 'Anonymous',
-        authorAvatar: user.photoURL || '',
+        authorId: currentUser.uid,
+        authorName: currentUser.displayName || 'Anonymous',
+        authorAvatar: currentUser.photoURL || '',
         content: newComment.trim(),
         createdAt: new Date().toISOString()
       });
 
-      await updateDoc(doc(db, 'posts', id as string), {
+      updateDocumentNonBlocking(doc(db, 'posts', id as string), {
         commentsCount: increment(1)
       });
 
@@ -115,7 +116,7 @@ export default function PostDetailPage() {
                       <p className="text-sm text-foreground leading-relaxed">{comment.content}</p>
                     </div>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold pl-2">
-                      {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                      {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'Just now'}
                     </p>
                   </div>
                 </div>
@@ -131,10 +132,10 @@ export default function PostDetailPage() {
           <div className="p-4 border-t bg-card/50 backdrop-blur">
             <form onSubmit={handleAddComment} className="flex gap-2">
               <Input 
-                placeholder={user ? "Write a comment..." : "Log in to comment"} 
+                placeholder={currentUser ? "Write a comment..." : "Log in to comment"} 
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                disabled={!user || isSubmitting}
+                disabled={!currentUser || isSubmitting}
                 className="rounded-full bg-background"
               />
               <Button 
