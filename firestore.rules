@@ -72,9 +72,11 @@ service cloud.firestore {
 
     /**
      * @description Marker collection for administrator privileges.
+     * Allow get for the owner so they can verify their own status without permission errors.
      */
     match /admin_roles/{adminId} {
-      allow read, write: if isAdmin();
+      allow get: if isOwner(adminId) || isAdmin();
+      allow list, write: if isAdmin();
     }
 
     /**
@@ -87,7 +89,6 @@ service cloud.firestore {
 
     /**
      * @description Business profiles. Owners can manage, admins can moderate.
-     * Updated list rule to allow owners to see their own businesses.
      */
     match /businesses/{businessId} {
       allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.ownerId);
@@ -117,7 +118,6 @@ service cloud.firestore {
 
     /**
      * @description User-generated posts. Supports public viewing of active posts.
-     * Updated list rule to allow authors to see their own posts.
      */
     match /posts/{postId} {
       allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.authorId);

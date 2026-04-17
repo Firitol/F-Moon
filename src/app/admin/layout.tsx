@@ -3,9 +3,10 @@
 
 import { ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { signOut } from 'firebase/auth';
 import { 
   LayoutDashboard, 
   Users, 
@@ -29,6 +30,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const db = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
@@ -47,11 +49,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
-    if (!isAdminLoading && user && !adminRole) {
-      // Not an admin, redirect to home
-      // router.push('/'); // Commented out for dev purposes so we can see the UI
+    // If we've finished checking and the user isn't an admin, send them home
+    if (!isAdminLoading && !isUserLoading && user && !adminRole) {
+      router.push('/');
     }
-  }, [adminRole, isAdminLoading, user, router]);
+  }, [adminRole, isAdminLoading, isUserLoading, user, router]);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
 
   const sidebarItems = [
     { name: 'Overview', href: '/admin', icon: LayoutDashboard },
@@ -72,6 +79,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </div>
     );
   }
+
+  // Final check to prevent content flash for non-admins
+  if (!adminRole) return null;
 
   return (
     <div className="flex min-h-screen bg-secondary/20">
@@ -108,7 +118,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               Back to Site
             </Link>
           </Button>
-          <Button variant="ghost" className="w-full justify-start text-destructive hover:bg-destructive/10">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-destructive hover:bg-destructive/10"
+            onClick={handleLogout}
+          >
             <LogOut className="w-4 h-4 mr-2" />
             Logout
           </Button>
