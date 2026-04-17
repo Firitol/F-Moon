@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { 
   collection, 
   query, 
@@ -13,16 +14,77 @@ import {
   addDoc, 
   doc, 
   getDoc,
-  setDoc
+  setDoc,
+  DocumentData
 } from 'firebase/firestore';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, MessageSquare, ShieldAlert, ChevronLeft } from 'lucide-react';
+import { Send, MessageSquare, ShieldAlert, ChevronLeft, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
+
+/**
+ * Helper component to render a conversation item with partner details
+ */
+function ConversationItem({ conversation, currentUser, activePartnerId, onSelect }: { 
+  conversation: any, 
+  currentUser: any, 
+  activePartnerId: string | null,
+  onSelect: (id: string) => void 
+}) {
+  const db = useFirestore();
+  const partnerId = conversation.participants.find((p: string) => p !== currentUser.uid);
+  
+  // Fetch partner details (user or business)
+  const [partner, setPartner] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPartner() {
+      if (!db || !partnerId) return;
+      const userRef = doc(db, 'public_user_profiles', partnerId);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        setPartner(userSnap.data());
+      } else {
+        const bizRef = doc(db, 'businesses', partnerId);
+        const bizSnap = await getDoc(bizRef);
+        if (bizSnap.exists()) setPartner(bizSnap.data());
+      }
+      setLoading(false);
+    }
+    fetchPartner();
+  }, [db, partnerId]);
+
+  const isSelected = activePartnerId === partnerId;
+
+  if (loading) return <div className="h-16 bg-muted/20 animate-pulse rounded-lg m-1" />;
+
+  return (
+    <button
+      onClick={() => onSelect(partnerId!)}
+      className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all hover:bg-secondary ${isSelected ? 'bg-secondary ring-1 ring-primary/20 shadow-sm' : ''}`}
+    >
+      <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+        <AvatarImage src={partner?.profilePictureUrl || partner?.imageUrl} />
+        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+          {partner?.name?.[0] || '?'}
+        </AvatarFallback>
+      </Avatar>
+      <div className="text-left flex-1 min-w-0">
+        <p className={`text-sm truncate ${isSelected ? 'font-bold text-primary' : 'font-semibold'}`}>
+          {partner?.name || 'User'}
+        </p>
+        <p className="text-[10px] text-muted-foreground truncate">
+          {conversation.lastMessage || 'Start a conversation'}
+        </p>
+      </div>
+    </button>
+  );
+}
 
 function MessagesContent() {
   const { user } = useUser();
@@ -50,15 +112,17 @@ function MessagesContent() {
     }
   }, [partnerParam, user]);
 
-  const friendshipQuery = useMemoFirebase(() => {
+  // Query conversations instead of just friendships
+  const convQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
-      collection(db, 'friendships'),
-      where('participants', 'array-contains', user.uid)
+      collection(db, 'conversations'),
+      where('participants', 'array-contains', user.uid),
+      orderBy('lastMessageAt', 'desc')
     );
   }, [db, user]);
 
-  const { data: friendships, isLoading: isFriendshipsLoading } = useCollection(friendshipQuery);
+  const { data: conversations, isLoading: isConversationsLoading } = useCollection(convQuery);
 
   const messageQuery = useMemoFirebase(() => {
     if (!db || !activeConversationId) return null;
@@ -66,7 +130,7 @@ function MessagesContent() {
       collection(db, 'messages'),
       where('conversationId', '==', activeConversationId),
       orderBy('createdAt', 'asc'),
-      limit(50)
+      limit(100)
     );
   }, [db, activeConversationId]);
 
@@ -89,7 +153,6 @@ function MessagesContent() {
       if (snap.exists()) {
         setActivePartner(snap.data());
       } else {
-        // Check businesses if not a user
         const bizSnap = await getDoc(doc(db, 'businesses', activePartnerId));
         if (bizSnap.exists()) setActivePartner(bizSnap.data());
       }
@@ -104,6 +167,15 @@ function MessagesContent() {
     const messageContent = newMessage.trim();
     setNewMessage('');
 
+    // Update conversation metadata first to ensure it appears in the list
+    const convRef = doc(db, 'conversations', activeConversationId);
+    await setDoc(convRef, {
+      lastMessage: messageContent,
+      lastMessageAt: new Date().toISOString(),
+      participants: [user.uid, activePartnerId]
+    }, { merge: true });
+
+    // Add message doc
     await addDoc(collection(db, 'messages'), {
       conversationId: activeConversationId,
       senderId: user.uid,
@@ -113,12 +185,17 @@ function MessagesContent() {
       isRead: false
     });
 
-    const convRef = doc(db, 'conversations', activeConversationId);
-    await setDoc(convRef, {
-      lastMessage: messageContent,
-      lastMessageAt: new Date().toISOString(),
-      participants: [user.uid, activePartnerId]
-    }, { merge: true });
+    // Notify partner
+    await addDoc(collection(db, 'notifications'), {
+      recipientId: activePartnerId,
+      actorId: user.uid,
+      actorName: user.displayName || 'Someone',
+      actorAvatar: user.photoURL || '',
+      type: 'message',
+      message: 'sent you a new message',
+      read: false,
+      createdAt: new Date().toISOString()
+    });
   };
 
   const selectConversation = (partnerId: string) => {
@@ -131,7 +208,7 @@ function MessagesContent() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="max-w-sm w-full text-center p-8 space-y-4">
+        <Card className="max-w-sm w-full text-center p-8 space-y-4 shadow-xl border-none">
           <ShieldAlert className="w-12 h-12 mx-auto text-primary" />
           <CardTitle>Sign in to Chat</CardTitle>
           <Button asChild className="w-full bg-primary"><Link href="/login">Get Started</Link></Button>
@@ -145,43 +222,31 @@ function MessagesContent() {
       <Navbar />
       <main className="max-w-6xl mx-auto h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] flex bg-card border rounded-none md:rounded-xl overflow-hidden shadow-xl mt-0 md:mt-4">
         
-        <aside className={`w-full md:w-80 border-r flex flex-col ${activeConversationId ? 'hidden md:flex' : 'flex'}`}>
+        <aside className={`w-full md:w-80 border-r flex flex-col ${activeConversationId && mounted && window.innerWidth < 768 ? 'hidden' : 'flex'}`}>
           <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
             <h2 className="font-headline font-bold text-lg">Messages</h2>
           </div>
           <ScrollArea className="flex-1">
             <div className="p-2 space-y-1">
-              {isFriendshipsLoading ? (
-                [1,2,3].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded-lg m-2" />)
-              ) : friendships?.length ? (
-                friendships.map((f: any) => {
-                  const partnerId = f.participants.find((p: string) => p !== user.uid);
-                  const isSelected = activePartnerId === partnerId;
-                  return (
-                    <button
-                      key={f.id}
-                      onClick={() => selectConversation(partnerId)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all hover:bg-secondary ${isSelected ? 'bg-secondary ring-1 ring-primary/20 shadow-sm' : ''}`}
-                    >
-                      <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
-                        <AvatarFallback>U</AvatarFallback>
-                      </Avatar>
-                      <div className="text-left flex-1 min-w-0">
-                        <p className={`text-sm truncate ${isSelected ? 'font-bold text-primary' : 'font-semibold'}`}>
-                          Chat Partner
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">established connection</p>
-                      </div>
-                    </button>
-                  );
-                })
+              {isConversationsLoading ? (
+                [1,2,3,4].map(i => <div key={i} className="h-16 bg-muted/20 animate-pulse rounded-lg m-2" />)
+              ) : conversations?.length ? (
+                conversations.map((c: any) => (
+                  <ConversationItem 
+                    key={c.id} 
+                    conversation={c} 
+                    currentUser={user} 
+                    activePartnerId={activePartnerId}
+                    onSelect={selectConversation}
+                  />
+                ))
               ) : (
                 <div className="p-8 text-center space-y-4">
                   <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto">
                     <MessageSquare className="w-8 h-8 opacity-20" />
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Start a conversation with friends or businesses you follow.
+                    No active conversations yet. Start one by visiting a friend's profile or inquiring at a business.
                   </p>
                   <Button variant="outline" size="sm" asChild className="rounded-full">
                     <Link href="/explore">Discover People</Link>
@@ -204,18 +269,18 @@ function MessagesContent() {
             <>
               <header className="h-16 border-b flex items-center justify-between px-6 bg-card/50 backdrop-blur sticky top-0 z-10">
                 <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="icon" className="md:hidden -ml-2" onClick={() => setActiveConversationId(null)}>
+                  <Button variant="ghost" size="icon" className="md:hidden -ml-2" onClick={() => { setActiveConversationId(null); setActivePartnerId(null); }}>
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
-                  <Avatar className="h-9 w-9 border">
+                  <Avatar className="h-9 w-9 border shadow-sm">
                     <AvatarImage src={activePartner?.profilePictureUrl || activePartner?.imageUrl} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                      {activePartner?.name?.[0]}
+                      {activePartner?.name?.[0] || '?'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
                     <span className="font-bold text-sm leading-none">{activePartner?.name || 'Loading...'}</span>
-                    <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest mt-1">Real-time</span>
+                    <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest mt-1">Chatting</span>
                   </div>
                 </div>
               </header>
@@ -239,6 +304,18 @@ function MessagesContent() {
                       </div>
                     );
                   })}
+                  {!messages?.length && activePartner && (
+                    <div className="text-center py-20 space-y-4 opacity-60">
+                      <Avatar className="h-20 w-20 mx-auto border-4 border-background shadow-xl">
+                        <AvatarImage src={activePartner.profilePictureUrl || activePartner.imageUrl} />
+                        <AvatarFallback className="text-2xl">{activePartner.name?.[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="space-y-1">
+                        <p className="font-headline font-bold">Say hello to {activePartner.name}!</p>
+                        <p className="text-xs text-muted-foreground">This is the start of your conversation.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
 
@@ -247,12 +324,12 @@ function MessagesContent() {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
-                  className="rounded-full bg-background h-11"
+                  className="rounded-full bg-background h-11 border-none ring-1 ring-border focus-visible:ring-primary"
                 />
                 <Button 
                   type="submit" 
                   size="icon" 
-                  className="rounded-full bg-primary h-11 w-11 shrink-0 shadow-md" 
+                  className="rounded-full bg-primary h-11 w-11 shrink-0 shadow-lg active:scale-95 transition-transform" 
                   disabled={!newMessage.trim()}
                 >
                   <Send className="w-5 h-5" />
@@ -268,7 +345,7 @@ function MessagesContent() {
 
 export default function MessagesPage() {
   return (
-    <Suspense fallback={<div className="p-20 text-center animate-pulse">Initializing Chat...</div>}>
+    <Suspense fallback={<div className="p-20 text-center animate-pulse">Initializing F-Moon Chat...</div>}>
       <MessagesContent />
     </Suspense>
   );
