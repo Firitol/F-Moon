@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -31,7 +30,7 @@ export function ProfileHoverCard({ children, id, type, initialData }: ProfileHov
     return doc(db, collectionName, id);
   }, [db, id, type]);
 
-  const { data: fetchedData, isLoading } = useDoc(docRef);
+  const { data: fetchedData } = useDoc(docRef);
   const data = fetchedData || initialData;
 
   const profileUrl = type === 'user' ? `/profile/${id}` : `/business/${id}`;
@@ -43,15 +42,15 @@ export function ProfileHoverCard({ children, id, type, initialData }: ProfileHov
         <span className="cursor-pointer hover:underline inline-block">{children}</span>
       </HoverCardTrigger>
       <HoverCardContent className="w-80 p-0 overflow-hidden border-none shadow-2xl">
-        <div className="bg-gradient-to-br from-primary/10 to-accent/10 p-4 space-y-4">
+        <div className="bg-gradient-to-br from-primary/10 to-accent/10 p-5 space-y-4">
           <div className="flex justify-between items-start gap-4">
-            <Avatar className="h-16 w-16 ring-4 ring-background shadow-sm">
-              <AvatarImage src={data?.profilePictureUrl || data?.imageUrl || data?.avatar} />
-              <AvatarFallback className="text-xl font-bold bg-primary text-primary-foreground">
+            <Avatar className="h-20 w-20 ring-4 ring-background shadow-lg">
+              <AvatarImage src={data?.profilePictureUrl || data?.imageUrl || data?.avatar} className="object-cover" />
+              <AvatarFallback className="text-2xl font-bold bg-primary text-primary-foreground">
                 {(data?.name || data?.userName || 'F')[0]}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-shrink-0">
+            <div className="flex flex-col gap-2">
                <SocialActions 
                 targetUserId={targetIdForSocial} 
                 isBusiness={type === 'business'} 
@@ -80,14 +79,14 @@ export function ProfileHoverCard({ children, id, type, initialData }: ProfileHov
             {data?.bio || data?.description || 'Discovering the best of Ethiopia together.'}
           </p>
 
-          <div className="flex flex-wrap gap-4 text-xs font-semibold text-muted-foreground pt-2 border-t">
+          <div className="flex flex-wrap gap-4 text-xs font-semibold text-muted-foreground pt-3 border-t">
             {type === 'user' ? (
               <>
                 <div className="flex items-center gap-1">
-                  <span className="text-foreground">856</span> Followers
+                  <span className="text-foreground">{data?.followerCount || 0}</span> Followers
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-foreground">412</span> Following
+                  <span className="text-foreground">{data?.friendCount || 0}</span> Friends
                 </div>
               </>
             ) : (
@@ -98,15 +97,15 @@ export function ProfileHoverCard({ children, id, type, initialData }: ProfileHov
                 </div>
                 <div className="flex items-center gap-1">
                   <Users className="w-3 h-3" />
-                  1.2k Customers
+                  Local Business
                 </div>
               </>
             )}
           </div>
 
-          <Button variant="secondary" size="sm" className="w-full rounded-full font-bold h-9" asChild>
+          <Button variant="secondary" size="sm" className="w-full rounded-full font-bold h-10 shadow-sm hover:shadow-md transition-all" asChild>
             <Link href={profileUrl}>
-              View {type === 'user' ? 'Profile' : 'Business'}
+              View {type === 'user' ? 'Full Profile' : 'Business Details'}
             </Link>
           </Button>
         </div>

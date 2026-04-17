@@ -6,7 +6,7 @@ rules_version = '2';
  * 
  * This configuration allows open read and write access for all users during development.
  * 
- * DEPLOYMENT_FORCE_ID: 2024_05_24_COMMENT_STABILITY_V112
+ * DEPLOYMENT_FORCE_ID: 2024_05_25_SOCIAL_GRAPH_V2
  */
 
 service cloud.firestore {
