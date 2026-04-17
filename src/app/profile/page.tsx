@@ -6,7 +6,7 @@ import { doc, collection, query, where, orderBy, limit, setDoc, updateDoc } from
 import { Navbar } from '@/components/layout/Navbar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Dialog, 
@@ -19,7 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Grid, Bookmark, Settings, LogOut, PlayCircle, Camera, Loader2, MapPin } from 'lucide-react';
+import { Grid, Bookmark, Settings, LogOut, PlayCircle, Camera, Loader2, MapPin, Heart } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -90,6 +90,18 @@ export default function CurrentUserProfilePage() {
   }, [db, user]);
 
   const { data: userPosts, isLoading: isPostsLoading } = useCollection(postsQuery);
+
+  const savedQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(
+      collection(db, 'bookmarks'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+  }, [db, user]);
+
+  const { data: savedPosts, isLoading: isSavedLoading } = useCollection(savedQuery);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -163,7 +175,6 @@ export default function CurrentUserProfilePage() {
       <Navbar />
       <main className="max-w-4xl mx-auto p-4">
         <header className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-12">
-          {/* Profile Photo with Responsive Hover */}
           <div 
             className="relative group cursor-pointer"
             onClick={() => fileInputRef.current?.click()}
@@ -174,8 +185,6 @@ export default function CurrentUserProfilePage() {
                 <AvatarFallback className="text-4xl bg-secondary text-primary font-bold">
                   {(profile?.name || user.displayName || 'U')[0]}
                 </AvatarFallback>
-                
-                {/* Hover Overlay */}
                 <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <Camera className="text-white w-8 h-8 mb-1" />
                   <span className="text-[10px] text-white font-bold uppercase tracking-widest">Update</span>
@@ -195,8 +204,6 @@ export default function CurrentUserProfilePage() {
             <div className="flex flex-col md:flex-row md:items-center gap-4 justify-center md:justify-start">
               <h1 className="text-2xl font-headline font-bold">{profile?.name || user.displayName || 'User'}</h1>
               <div className="flex gap-2 justify-center">
-                
-                {/* Edit Profile Dialog */}
                 <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="secondary" size="sm" className="font-bold hover:bg-secondary/80 transition-colors">
@@ -262,11 +269,11 @@ export default function CurrentUserProfilePage() {
                 <span className="text-muted-foreground">posts</span>
               </div>
               <div className="flex flex-col items-center md:items-start group cursor-default">
-                <span className="font-bold group-hover:text-primary transition-colors">856</span>
+                <span className="font-bold group-hover:text-primary transition-colors">{profile?.followerCount || 0}</span>
                 <span className="text-muted-foreground">followers</span>
               </div>
               <div className="flex flex-col items-center md:items-start group cursor-default">
-                <span className="font-bold group-hover:text-primary transition-colors">412</span>
+                <span className="font-bold group-hover:text-primary transition-colors">{profile?.followingCount || 0}</span>
                 <span className="text-muted-foreground">following</span>
               </div>
             </div>
@@ -303,7 +310,7 @@ export default function CurrentUserProfilePage() {
             ) : userPosts?.length ? (
               <div className="grid grid-cols-3 gap-1 md:gap-6">
                 {userPosts.map((post) => (
-                  <div key={post.id} className="relative aspect-square group cursor-pointer overflow-hidden rounded-md bg-muted shadow-sm hover:shadow-md transition-shadow">
+                  <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square group cursor-pointer overflow-hidden rounded-md bg-muted shadow-sm hover:shadow-md transition-shadow">
                     {post.imageUrl ? (
                       <Image 
                         src={post.imageUrl} 
@@ -323,7 +330,7 @@ export default function CurrentUserProfilePage() {
                         {post.content}
                       </div>
                     )}
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -338,10 +345,40 @@ export default function CurrentUserProfilePage() {
           </TabsContent>
 
           <TabsContent value="saved" className="mt-8">
-            <div className="text-center py-24 border-2 border-dashed rounded-2xl bg-muted/20">
-              <Bookmark className="w-16 h-16 mx-auto mb-4 opacity-10 text-accent" />
-              <p className="text-muted-foreground font-medium">Saved posts will appear here.</p>
-            </div>
+            {isSavedLoading ? (
+               <div className="grid grid-cols-3 gap-1 md:gap-4">
+                {[1, 2, 3].map(i => <div key={i} className="aspect-square bg-muted animate-pulse rounded-md" />)}
+              </div>
+            ) : savedPosts?.length ? (
+              <div className="grid grid-cols-3 gap-1 md:gap-6">
+                {savedPosts.map((saved) => (
+                  <Link href={`/post/${saved.postId}`} key={saved.id} className="relative aspect-square group cursor-pointer overflow-hidden rounded-md bg-muted">
+                    {saved.postData?.imageUrl ? (
+                      <Image 
+                        src={saved.postData.imageUrl} 
+                        alt="Saved post" 
+                        fill 
+                        className="object-cover transition-transform group-hover:scale-110" 
+                        unoptimized={saved.postData.imageUrl.startsWith('data:')}
+                        sizes="(max-width: 768px) 33vw, 300px"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-secondary flex items-center justify-center p-2 text-[10px] text-center italic text-muted-foreground">
+                        {saved.postData?.content || 'Saved Post'}
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 bg-primary/80 backdrop-blur p-1 rounded-full">
+                       <Bookmark className="w-3 h-3 text-white fill-current" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-24 border-2 border-dashed rounded-2xl bg-muted/20">
+                <Bookmark className="w-16 h-16 mx-auto mb-4 opacity-10 text-accent" />
+                <p className="text-muted-foreground font-medium">Saved posts will appear here.</p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </main>

@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -59,8 +58,7 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "user1Id": { "type": "string" },
-        "user2Id": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
@@ -86,6 +84,25 @@
         "lastMessage": { "type": "string" },
         "lastMessageAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "PostLike": {
+      "title": "PostLike",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "userId": { "type": "string" },
+        "postData": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -98,6 +115,8 @@
     "/friend_requests/{requestId}": { "schema": "FriendRequest", "description": "Friendship requests." },
     "/friendships/{friendshipId}": { "schema": "Friendship", "description": "Mutual friendships." },
     "/conversations/{conversationId}": { "schema": "Conversation", "description": "Chat conversations." },
-    "/messages/{messageId}": { "schema": "Message", "description": "Individual chat messages." }
+    "/messages/{messageId}": { "schema": "Message", "description": "Individual chat messages." },
+    "/post_likes/{likeId}": { "schema": "PostLike", "description": "User likes on posts." },
+    "/bookmarks/{bookmarkId}": { "schema": "Bookmark", "description": "User saved posts." }
   }
 }

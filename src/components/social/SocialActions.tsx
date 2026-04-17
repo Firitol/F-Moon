@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -17,6 +16,7 @@ import { UserPlus, UserCheck, UserX, UserMinus, MessageSquare } from 'lucide-rea
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 interface SocialActionsProps {
   targetUserId: string;
@@ -29,6 +29,7 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   
   // Follow State
   const followQuery = useMemoFirebase(() => {
@@ -73,7 +74,10 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
   };
 
   const handleFollow = async () => {
-    if (!db || !user) return;
+    if (!db || !user) {
+      toast({ title: "Auth Required", description: "Please sign in to follow others." });
+      return;
+    }
     if (isFollowing) {
       const snap = await getDocs(followQuery!);
       snap.forEach(d => deleteDoc(d.ref));
@@ -90,7 +94,10 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
   };
 
   const handleFriendRequest = async () => {
-    if (!db || !user) return;
+    if (!db || !user) {
+      toast({ title: "Auth Required", description: "Please sign in to add friends." });
+      return;
+    }
     if (outgoingRequest) {
       deleteDoc(doc(db, 'friend_requests', outgoingRequest.id));
       toast({ title: "Request Cancelled" });
@@ -120,6 +127,10 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
     toast({ title: "Friendship Established!" });
   };
 
+  const startChat = () => {
+    router.push(`/messages?partner=${targetUserId}`);
+  };
+
   if (!user || user.uid === targetUserId) return null;
 
   const isMinimal = variant === 'minimal';
@@ -141,10 +152,13 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
       {!isBusiness && (
         <>
           {isFriend ? (
-            <Button variant="secondary" size={isMinimal ? "sm" : "default"} className={cn("font-bold", isMinimal && "h-8 px-3 text-[10px]")} asChild>
-              <Link href="/messages">
-                <MessageSquare className="w-4 h-4 mr-2" /> Chat
-              </Link>
+            <Button 
+              variant="secondary" 
+              size={isMinimal ? "sm" : "default"} 
+              className={cn("font-bold", isMinimal && "h-8 px-3 text-[10px]")}
+              onClick={startChat}
+            >
+              <MessageSquare className="w-4 h-4 mr-2" /> Message
             </Button>
           ) : incomingRequest ? (
             <Button variant="default" size={isMinimal ? "sm" : "default"} className={cn("bg-green-600 hover:bg-green-700 font-bold", isMinimal && "h-8 px-3 text-[10px]")} onClick={acceptRequest}>
@@ -162,6 +176,20 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
             </Button>
           )}
         </>
+      )}
+
+      {/* Business Message Button */}
+      {isBusiness && (
+        <Button 
+          variant="outline" 
+          size={isMinimal ? "sm" : "default"} 
+          className={cn("font-bold", isMinimal && "h-8 px-3 text-[10px]")}
+          asChild
+        >
+          <Link href={`/business/${targetUserId}`}>
+            <MessageSquare className="w-4 h-4 mr-2" /> Inquire
+          </Link>
+        </Button>
       )}
     </div>
   );
