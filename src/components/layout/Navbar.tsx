@@ -2,14 +2,27 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Compass, PlusSquare, User, Bell, Search, Briefcase, MessageSquare } from 'lucide-react';
+import { Home, Compass, PlusSquare, User, Bell, Search, Briefcase, MessageSquare, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/layout/Logo';
-import { useUser } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 export function Navbar() {
   const { user } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <>
@@ -37,8 +50,9 @@ export function Navbar() {
           <Link href="/explore" className="text-muted-foreground hover:text-primary transition-colors" title="Explore">
             <Compass className="w-6 h-6" />
           </Link>
-          <Link href="/messages" className="text-muted-foreground hover:text-primary transition-colors" title="Messages">
+          <Link href="/messages" className="text-muted-foreground hover:text-primary transition-colors relative" title="Messages">
             <MessageSquare className="w-6 h-6" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full border-2 border-background" />
           </Link>
           <Link href="/business/dashboard" className="text-muted-foreground hover:text-primary transition-colors" title="Business Hub">
             <Briefcase className="w-6 h-6" />
@@ -50,6 +64,16 @@ export function Navbar() {
           <Link href="/profile" className="text-muted-foreground hover:text-primary transition-colors" title="My Profile">
             <User className="w-6 h-6" />
           </Link>
+          <div className="h-6 w-px bg-border mx-2" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-muted-foreground hover:text-destructive transition-colors"
+            onClick={handleLogout}
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </Button>
           <Button variant="default" className="rounded-full bg-primary hover:bg-primary/90 px-6 h-9 font-bold" asChild>
             <Link href="/create">Post</Link>
           </Button>
@@ -67,10 +91,11 @@ export function Navbar() {
               <Search className="w-5 h-5" />
             </Button>
           </Link>
-          <Link href="/messages">
+          <Link href="/messages" className="relative">
             <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
               <MessageSquare className="w-5 h-5" />
             </Button>
+            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full border-2 border-background" />
           </Link>
         </div>
       </header>
