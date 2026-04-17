@@ -8,13 +8,13 @@ import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
-  title: 'EthioConnect | Discover Ethiopia',
+  title: 'F-Moon | Discover Ethiopia',
   description: 'Connect with local Ethiopian businesses and community.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'EthioConnect',
+    title: 'F-Moon',
   },
 };
 
@@ -40,7 +40,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="EthioConnect" />
+        <meta name="apple-mobile-web-app-title" content="F-Moon" />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         <FirebaseClientProvider>

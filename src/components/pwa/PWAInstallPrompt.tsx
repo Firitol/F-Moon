@@ -51,7 +51,7 @@ export function PWAInstallPrompt() {
             <Download className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold">Install EthioConnect</p>
+            <p className="text-sm font-bold">Install F-Moon</p>
             <p className="text-xs text-muted-foreground">Add to home screen for a native experience</p>
           </div>
           <div className="flex items-center gap-2">

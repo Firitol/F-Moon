@@ -21,7 +21,7 @@ export function Logo({ className, iconClassName, showText = true }: LogoProps) {
       </div>
       {showText && (
         <span className="font-headline font-bold text-xl text-primary tracking-tighter italic">
-          EthioConnect
+          F-Moon
         </span>
       )}
     </div>

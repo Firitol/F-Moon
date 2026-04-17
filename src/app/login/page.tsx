@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Phone, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
 
@@ -130,7 +130,7 @@ export default function AuthPage() {
         </Card>
 
         <p className="text-center text-[10px] text-muted-foreground uppercase tracking-widest px-8">
-          By joining, you agree to EthioConnect's <span className="text-primary font-bold">Terms</span> and <span className="text-primary font-bold">Privacy Policy</span>.
+          By joining, you agree to F-Moon's <span className="text-primary font-bold">Terms</span> and <span className="text-primary font-bold">Privacy Policy</span>.
         </p>
       </div>
     </div>

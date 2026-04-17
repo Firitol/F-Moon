@@ -85,7 +85,7 @@ export default function Home() {
 
           <footer className="px-1 text-[10px] text-muted-foreground uppercase tracking-widest space-y-2">
             <p>About • Help • Press • API • Jobs • Privacy • Terms</p>
-            <p>© 2024 ETHIOCONNECT FROM ETHIOPIA</p>
+            <p>© 2024 F-MOON FROM ETHIOPIA</p>
           </footer>
         </aside>
       </main>

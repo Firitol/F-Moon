@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow for generating engaging social media captions.
@@ -39,7 +40,7 @@ const captionPrompt = ai.definePrompt({
   name: 'captionPrompt',
   input: {schema: SuggestPostCaptionInputSchema},
   output: {schema: SuggestPostCaptionOutputSchema},
-  prompt: `You are an expert social media manager who writes engaging and catchy captions for posts on a local business discovery platform called EthioConnect.
+  prompt: `You are an expert social media manager who writes engaging and catchy captions for posts on a local business discovery platform called F-Moon.
 Your goal is to create a compelling caption that will maximize user engagement for a user's post.
 
 Input details:

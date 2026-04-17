@@ -32,7 +32,7 @@ export function PWALoader() {
         <Logo iconClassName="w-20 h-20" showText={false} />
       </div>
       <div className="text-center space-y-4 w-full max-w-xs">
-        <h2 className="text-2xl font-headline font-bold text-primary italic">EthioConnect</h2>
+        <h2 className="text-2xl font-headline font-bold text-primary italic">F-Moon</h2>
         <Progress value={progress} className="h-1 bg-secondary" />
         <p className="text-xs text-muted-foreground animate-pulse font-medium uppercase tracking-widest">
           Connecting you to Ethiopia...
