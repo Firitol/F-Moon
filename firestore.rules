@@ -15,19 +15,6 @@ rules_version = '2';
  * - /businesses, /posts, /follows, /reports, /payments: Root collections utilizing 
  *   denormalized ownership IDs (ownerId, authorId, reporterId, userId) for fast, 
  *   independent authorization.
- *
- * Key Security Decisions:
- * 1. Global Admin Override: An 'Admin' role is verified via the existence of a document 
- *    in the '/admin_roles' collection. Admins have bypass permissions for moderation.
- * 2. Denormalization for Authorization: Essential relational links (like 'ownerId') 
- *    are required on documents to allow for direct ownership checks without costly 
- *    resource lookups.
- * 3. QAP (Query Access Patterns): Public listing for content (Posts, Businesses) 
- *    is restricted to 'active' statuses. Non-admin clients MUST filter queries 
- *    by status to pass security validation.
- * 4. Structural Segregation: Sensitive account info (/users) is physically 
- *    separated from public profile info (/public_user_profiles) to prevent 
- *    accidental data leaks.
  */
 
 service cloud.firestore {
@@ -64,10 +51,6 @@ service cloud.firestore {
 
     /**
      * @description Core user account data. Private to the user and admins.
-     * @path /users/{userId}
-     * @allow (create) if auth.uid matches path. (get) if owner or admin.
-     * @deny (list) if not admin.
-     * @principle Ownership and Role-Based Access Control.
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
@@ -79,10 +62,6 @@ service cloud.firestore {
 
     /**
      * @description Publicly accessible user profile details.
-     * @path /public_user_profiles/{userId}
-     * @allow (get, list) if true. (create, update) if owner or admin.
-     * @deny (delete) if not admin.
-     * @principle Structural Segregation for public/private data.
      */
     match /public_user_profiles/{userId} {
       allow get, list: if true;
@@ -93,10 +72,6 @@ service cloud.firestore {
 
     /**
      * @description Marker collection for administrator privileges.
-     * @path /admin_roles/{adminId}
-     * @allow (get, list, write) if admin.
-     * @deny (any) if not admin.
-     * @principle Existence-over-content for global roles.
      */
     match /admin_roles/{adminId} {
       allow read, write: if isAdmin();
@@ -104,10 +79,6 @@ service cloud.firestore {
 
     /**
      * @description Business categories lookup table.
-     * @path /business_categories/{categoryId}
-     * @allow (get, list) if true. (write) if admin.
-     * @deny (write) if not admin.
-     * @principle Read-only for general users, admin-managed.
      */
     match /business_categories/{categoryId} {
       allow get, list: if true;
@@ -116,17 +87,11 @@ service cloud.firestore {
 
     /**
      * @description Business profiles. Owners can manage, admins can moderate.
-     * @path /businesses/{businessId}
-     * @allow (get) if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.ownerId);
-     * @allow (list) if isAdmin() || request.query.status == 'active';
-     * @allow (create) if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-     * @allow (update) if (isExistingOwner(resource.data.ownerId) && isUnchanged('ownerId')) || isAdmin();
-     * @allow (delete) if isAdmin();
-     * @principle QAP validation and ownership integrity.
+     * Updated list rule to allow owners to see their own businesses.
      */
     match /businesses/{businessId} {
       allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.ownerId);
-      allow list: if isAdmin() || request.query.status == 'active';
+      allow list: if isAdmin() || request.query.status == 'active' || (isSignedIn() && request.query.ownerId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if (isExistingOwner(resource.data.ownerId) && isUnchanged('ownerId')) || isAdmin();
       allow delete: if isAdmin();
@@ -134,9 +99,6 @@ service cloud.firestore {
 
     /**
      * @description Subscription plans lookup table.
-     * @path /subscription_plans/{planId}
-     * @allow (get, list) if true. (write) if admin.
-     * @principle Admin-managed static data.
      */
     match /subscription_plans/{planId} {
       allow get, list: if true;
@@ -145,12 +107,6 @@ service cloud.firestore {
 
     /**
      * @description Business subscriptions. Uses denormalized ownerId for auth.
-     * @path /business_subscriptions/{subscriptionId}
-     * @allow (get) if resource == null || isOwner(resource.data.ownerId) || isAdmin();
-     * @allow (list) if isAdmin();
-     * @allow (create) if isAdmin() || (isSignedIn() && request.resource.data.ownerId == request.auth.uid);
-     * @allow (update, delete) if isAdmin();
-     * @principle Authorization Independence via denormalization.
      */
     match /business_subscriptions/{subscriptionId} {
       allow get: if resource == null || isOwner(resource.data.ownerId) || isAdmin();
@@ -161,15 +117,11 @@ service cloud.firestore {
 
     /**
      * @description User-generated posts. Supports public viewing of active posts.
-     * @path /posts/{postId}
-     * @allow (get) if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.authorId);
-     * @allow (list) if isAdmin() || request.query.status == 'active';
-     * @allow (create) if authorId matches auth.
-     * @principle Relational integrity for authorId.
+     * Updated list rule to allow authors to see their own posts.
      */
     match /posts/{postId} {
       allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.authorId);
-      allow list: if isAdmin() || request.query.status == 'active';
+      allow list: if isAdmin() || request.query.status == 'active' || (isSignedIn() && request.query.authorId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       allow update: if (isExistingOwner(resource.data.authorId) && isUnchanged('authorId')) || isAdmin();
       allow delete: if isExistingOwner(resource.data.authorId) || isAdmin();
@@ -193,15 +145,12 @@ service cloud.firestore {
         allow list: if true;
         allow create: if isOwner(userId);
         allow delete: if isExistingOwner(userId) || isAdmin();
-        allow update: if false; // Likes are usually not updated
+        allow update: if false;
       }
     }
 
     /**
      * @description Social graph (follows).
-     * @path /follows/{followId}
-     * @allow (create, delete) if followerId matches auth.
-     * @principle User-scoped relationship management.
      */
     match /follows/{followId} {
       allow get, list: if true;
@@ -212,12 +161,6 @@ service cloud.firestore {
 
     /**
      * @description Financial transaction records.
-     * @path /payments/{paymentId}
-     * @allow (get) if resource == null || isOwner(resource.data.userId) || isAdmin();
-     * @allow (list) if isAdmin() || (isSignedIn() && request.query.userId == request.auth.uid);
-     * @allow (create) if isSignedIn() && request.resource.data.userId == request.auth.uid;
-     * @allow (update, delete) if isAdmin();
-     * @principle Highly restrictive read access for sensitive data.
      */
     match /payments/{paymentId} {
       allow get: if resource == null || isOwner(resource.data.userId) || isAdmin();
@@ -228,13 +171,6 @@ service cloud.firestore {
 
     /**
      * @description Moderation reports. Reporters can see their own.
-     * @path /reports/{reportId}
-     * @allow (get) if resource == null || isOwner(resource.data.reporterId) || isAdmin();
-     * @allow (list) if isAdmin() || (isSignedIn() && request.query.reporterId == request.auth.uid);
-     * @allow (create) if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
-     * @allow (update) if isExistingOwner(resource.data.reporterId) || isAdmin();
-     * @allow (delete) if isAdmin();
-     * @principle Secure reporting and administration.
      */
     match /reports/{reportId} {
       allow get: if resource == null || isOwner(resource.data.reporterId) || isAdmin();
