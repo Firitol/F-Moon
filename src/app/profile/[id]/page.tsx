@@ -8,7 +8,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Grid, UserPlus, MessageSquare, ShieldAlert } from 'lucide-react';
+import { Grid, UserPlus, MessageSquare, ShieldAlert, PlayCircle } from 'lucide-react';
 import Image from 'next/image';
 
 export default function UserProfilePage() {
@@ -116,14 +116,20 @@ export default function UserProfilePage() {
             ) : userPosts?.length ? (
               <div className="grid grid-cols-3 gap-1 md:gap-4">
                 {userPosts.map((post) => (
-                  <div key={post.id} className="relative aspect-square group cursor-pointer overflow-hidden rounded-md">
+                  <div key={post.id} className="relative aspect-square group cursor-pointer overflow-hidden rounded-md bg-muted">
                     {post.imageUrl ? (
                       <Image 
                         src={post.imageUrl} 
                         alt="User post" 
                         fill 
                         className="object-cover transition-transform group-hover:scale-105" 
+                        unoptimized={post.imageUrl.startsWith('data:')}
                       />
+                    ) : post.videoUrl ? (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <PlayCircle className="w-10 h-10 text-white opacity-50" />
+                        <video src={post.videoUrl} className="absolute inset-0 w-full h-full object-cover opacity-30" muted />
+                      </div>
                     ) : (
                       <div className="w-full h-full bg-secondary flex items-center justify-center p-2 text-xs text-center italic">
                         {post.content}

@@ -30,6 +30,7 @@ export interface Post {
   authorId: string;
   content: string;
   imageUrl?: string;
+  videoUrl?: string;
   isPromoted: boolean;
   status: 'active' | 'moderated';
   createdAt: string;

@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Trash2, ShieldX, Eye, MessageSquare, Heart } from 'lucide-react';
+import { Trash2, ShieldX, Eye, MessageSquare, Heart, FileVideo } from 'lucide-react';
 import Image from 'next/image';
 
 export default function PostModeration() {
@@ -30,7 +30,12 @@ export default function PostModeration() {
             <Card key={post.id} className="overflow-hidden group">
               <div className="relative aspect-video bg-muted">
                 {post.imageUrl ? (
-                  <Image src={post.imageUrl} alt="Post" fill className="object-cover" />
+                  <Image src={post.imageUrl} alt="Post" fill className="object-cover" unoptimized={post.imageUrl.startsWith('data:')} />
+                ) : post.videoUrl ? (
+                  <div className="w-full h-full bg-black flex items-center justify-center relative">
+                    <video src={post.videoUrl} className="w-full h-full object-cover opacity-60" muted />
+                    <FileVideo className="w-8 h-8 text-white absolute" />
+                  </div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground italic text-sm p-4">
                     Text-only post
@@ -72,7 +77,6 @@ export default function PostModeration() {
           ))
         ) : (
           <div className="col-span-full py-20 text-center border-2 border-dashed rounded-xl">
-            <FileText className="w-12 h-12 mx-auto mb-4 opacity-10" />
             <p className="text-muted-foreground">No posts found in the directory.</p>
           </div>
         )}

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -46,7 +47,15 @@ export function PostCard({ post, priority = false }: PostCardProps) {
       </CardHeader>
       
       <CardContent className="p-0">
-        {post.imageUrl && (
+        {post.videoUrl ? (
+          <div className="relative aspect-square w-full bg-black">
+            <video 
+              src={post.videoUrl} 
+              controls 
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : post.imageUrl ? (
           <div className="relative aspect-square w-full">
             <Image
               src={post.imageUrl}
@@ -55,10 +64,11 @@ export function PostCard({ post, priority = false }: PostCardProps) {
               className="object-cover"
               data-ai-hint="post image"
               priority={priority}
+              unoptimized={post.imageUrl.startsWith('data:')}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 600px"
             />
           </div>
-        )}
+        ) : null}
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-4">

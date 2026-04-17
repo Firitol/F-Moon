@@ -4,13 +4,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { Navbar } from '@/components/layout/Navbar';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ImagePlus, MessageSquare, Briefcase, Loader2, Sparkles, X } from 'lucide-react';
+import { ImagePlus, MessageSquare, Briefcase, Loader2, Sparkles, X, FileVideo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { suggestPostCaption } from '@/ai/flows/suggest-post-caption';
 import Image from 'next/image';
@@ -23,13 +23,26 @@ export default function CreatePage() {
   
   const [activeTab, setActiveTab] = useState('post');
   const [content, setContent] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMediaUrl(reader.result as string);
+        setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleCreatePost = async () => {
     if (!user || !db) return;
-    if (!content.trim() && !imageUrl) {
+    if (!content.trim() && !mediaUrl) {
       toast({ title: "Error", description: "Please add some content.", variant: "destructive" });
       return;
     }
@@ -41,7 +54,8 @@ export default function CreatePage() {
         userName: user.displayName || 'User',
         userAvatar: user.photoURL || '',
         content,
-        imageUrl,
+        imageUrl: mediaType === 'image' ? mediaUrl : '',
+        videoUrl: mediaType === 'video' ? mediaUrl : '',
         isPromoted: false,
         status: 'active',
         createdAt: new Date().toISOString(),
@@ -63,7 +77,7 @@ export default function CreatePage() {
     try {
       const { caption } = await suggestPostCaption({
         description: content,
-        photoDataUri: imageUrl || undefined
+        photoDataUri: (mediaType === 'image' && mediaUrl) ? mediaUrl : undefined
       });
       setContent(caption);
       toast({ title: "AI", description: "Caption suggested!" });
@@ -95,28 +109,43 @@ export default function CreatePage() {
 
               <div className="space-y-6">
                 <div className="relative aspect-video bg-muted rounded-xl overflow-hidden border-2 border-dashed flex flex-col items-center justify-center group">
-                  {imageUrl ? (
+                  {mediaUrl ? (
                     <>
-                      <Image src={imageUrl} alt="Upload preview" fill className="object-cover" />
+                      {mediaType === 'video' ? (
+                        <video src={mediaUrl} controls className="w-full h-full object-cover" />
+                      ) : (
+                        <Image src={mediaUrl} alt="Upload preview" fill className="object-cover" unoptimized />
+                      )}
                       <Button 
                         size="icon" 
                         variant="destructive" 
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => setImageUrl('')}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        onClick={() => { setMediaUrl(''); setMediaType(null); }}
                       >
                         <X className="w-4 h-4" />
                       </Button>
                     </>
                   ) : (
-                    <div className="text-center space-y-2 p-8">
-                      <ImagePlus className="w-12 h-12 mx-auto text-muted-foreground opacity-20" />
-                      <p className="text-sm text-muted-foreground">Add a photo to make your post stand out</p>
-                      <input 
-                        type="text" 
-                        placeholder="Paste image URL here..." 
-                        className="text-xs p-2 border rounded w-full bg-background"
-                        onChange={(e) => setImageUrl(e.target.value)}
-                      />
+                    <div className="text-center space-y-4 p-8">
+                      <div className="flex justify-center gap-6">
+                        <ImagePlus className="w-12 h-12 text-muted-foreground opacity-20" />
+                        <FileVideo className="w-12 h-12 text-muted-foreground opacity-20" />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">Browse your device to upload</p>
+                        <input 
+                          type="file" 
+                          accept="image/*,video/*" 
+                          id="file-upload" 
+                          className="hidden" 
+                          onChange={handleFileChange} 
+                        />
+                        <Button variant="secondary" size="sm" asChild>
+                          <label htmlFor="file-upload" className="cursor-pointer">
+                            Choose Photo or Video
+                          </label>
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -128,11 +157,11 @@ export default function CreatePage() {
                       variant="ghost" 
                       size="sm" 
                       onClick={handleSuggestCaption}
-                      disabled={isSuggesting}
+                      disabled={isSuggesting || (mediaType === 'video')}
                       className="text-primary hover:text-primary hover:bg-primary/10"
                     >
                       {isSuggesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                      AI Suggest
+                      {mediaType === 'video' ? 'AI Suggest (Photos only)' : 'AI Suggest'}
                     </Button>
                   </div>
                   <Textarea 

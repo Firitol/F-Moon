@@ -51,6 +51,8 @@
         "id": { "type": "string" },
         "authorId": { "type": "string" },
         "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "videoUrl": { "type": "string" },
         "status": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
