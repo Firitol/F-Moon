@@ -1,8 +1,9 @@
 rules_version = '2';
 
 /**
- * FIRESTORE SECURITY RULES - FULL PUBLIC ACCESS
- * Deployment Trigger: 2024-05-21T17:30:00Z
+ * FIRESTORE SECURITY RULES - FULL PUBLIC ACCESS (DEVELOPMENT MODE)
+ * Deployment Trigger: 2024-05-22T09:15:00Z
+ * This configuration allows anyone with your database reference to view, edit, and delete all data.
  */
 
 service cloud.firestore {
