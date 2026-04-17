@@ -1,25 +1,47 @@
-
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, where, orderBy, limit, setDoc } from 'firebase/firestore';
+import { doc, collection, query, where, orderBy, limit, setDoc, updateDoc } from 'firebase/firestore';
 import { Navbar } from '@/components/layout/Navbar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Grid, Bookmark, Settings, LogOut, PlayCircle } from 'lucide-react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Grid, Bookmark, Settings, LogOut, PlayCircle, Camera, Loader2, MapPin } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CurrentUserProfilePage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const db = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editData, setEditData] = useState({
+    name: '',
+    bio: '',
+    location: ''
+  });
 
   const profileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -28,18 +50,34 @@ export default function CurrentUserProfilePage() {
 
   const { data: profile } = useDoc(profileRef);
 
+  useEffect(() => {
+    if (profile) {
+      setEditData({
+        name: profile.name || '',
+        bio: profile.bio || '',
+        location: profile.location || ''
+      });
+    }
+  }, [profile]);
+
   // Auto-initialize profile if it doesn't exist
-  if (user && !isUserLoading && !profile) {
-    const newProfile = {
-      name: user.displayName || 'New User',
-      profilePictureUrl: user.photoURL || '',
-      bio: 'Discovering F-Moon!',
-      location: '',
-      userId: user.uid,
-      id: user.uid
-    };
-    setDoc(doc(db, 'public_user_profiles', user.uid), newProfile);
-  }
+  useEffect(() => {
+    if (user && !isUserLoading && !profile && db) {
+      const initProfile = async () => {
+        const newProfile = {
+          name: user.displayName || 'User',
+          profilePictureUrl: user.photoURL || '',
+          bio: 'Discovering F-Moon!',
+          location: 'Addis Ababa',
+          userId: user.uid,
+          id: user.uid,
+          createdAt: new Date().toISOString()
+        };
+        await setDoc(doc(db, 'public_user_profiles', user.uid), newProfile);
+      };
+      initProfile();
+    }
+  }, [user, isUserLoading, profile, db]);
 
   const postsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -56,6 +94,43 @@ export default function CurrentUserProfilePage() {
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/login');
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && db && user) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        try {
+          await updateDoc(doc(db, 'public_user_profiles', user.uid), {
+            profilePictureUrl: base64String
+          });
+          toast({ title: "Success", description: "Profile photo updated!" });
+        } catch (error: any) {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!db || !user) return;
+    setIsUpdating(true);
+    try {
+      await updateDoc(doc(db, 'public_user_profiles', user.uid), {
+        name: editData.name,
+        bio: editData.bio,
+        location: editData.location
+      });
+      toast({ title: "Success", description: "Profile updated successfully!" });
+      setIsEditDialogOpen(false);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   if (isUserLoading) return (
@@ -88,48 +163,121 @@ export default function CurrentUserProfilePage() {
       <Navbar />
       <main className="max-w-4xl mx-auto p-4">
         <header className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-12">
-          <div className="relative group">
-            <div className="p-1 rounded-full instagram-gradient shadow-lg">
-              <Avatar className="h-32 w-32 md:h-40 md:w-40 ring-4 ring-background">
-                <AvatarImage src={profile?.profilePictureUrl || user.photoURL || ''} />
+          {/* Profile Photo with Responsive Hover */}
+          <div 
+            className="relative group cursor-pointer"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <div className="p-1 rounded-full instagram-gradient shadow-lg transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
+              <Avatar className="h-32 w-32 md:h-40 md:w-40 ring-4 ring-background overflow-hidden relative">
+                <AvatarImage src={profile?.profilePictureUrl || user.photoURL || ''} className="object-cover" />
                 <AvatarFallback className="text-4xl bg-secondary text-primary font-bold">
                   {(profile?.name || user.displayName || 'U')[0]}
                 </AvatarFallback>
+                
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <Camera className="text-white w-8 h-8 mb-1" />
+                  <span className="text-[10px] text-white font-bold uppercase tracking-widest">Update</span>
+                </div>
               </Avatar>
             </div>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*" 
+              onChange={handlePhotoChange} 
+            />
           </div>
 
           <div className="flex-1 space-y-6 text-center md:text-left">
             <div className="flex flex-col md:flex-row md:items-center gap-4 justify-center md:justify-start">
               <h1 className="text-2xl font-headline font-bold">{profile?.name || user.displayName || 'User'}</h1>
               <div className="flex gap-2 justify-center">
-                <Button variant="secondary" size="sm" className="font-bold">Edit Profile</Button>
-                <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+                
+                {/* Edit Profile Dialog */}
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="secondary" size="sm" className="font-bold hover:bg-secondary/80 transition-colors">
+                      Edit Profile
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle className="font-headline">Edit Profile</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Display Name</Label>
+                        <Input 
+                          id="name" 
+                          value={editData.name} 
+                          onChange={(e) => setEditData({...editData, name: e.target.value})} 
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="bio">Bio</Label>
+                        <Textarea 
+                          id="bio" 
+                          placeholder="Tell us about yourself..." 
+                          value={editData.bio}
+                          onChange={(e) => setEditData({...editData, bio: e.target.value})}
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="location">Location</Label>
+                        <Input 
+                          id="location" 
+                          placeholder="e.g. Addis Ababa, Ethiopia"
+                          value={editData.location}
+                          onChange={(e) => setEditData({...editData, location: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button 
+                        type="submit" 
+                        onClick={handleUpdateProfile} 
+                        disabled={isUpdating}
+                        className="bg-primary font-bold w-full sm:w-auto"
+                      >
+                        {isUpdating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                        Save Changes
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout" className="hover:bg-destructive/10">
                   <LogOut className="w-5 h-5 text-destructive" />
                 </Button>
               </div>
             </div>
 
             <div className="flex justify-center md:justify-start gap-8 text-sm">
-              <div className="flex flex-col items-center md:items-start">
-                <span className="font-bold">{userPosts?.length || 0}</span>
+              <div className="flex flex-col items-center md:items-start group cursor-default">
+                <span className="font-bold group-hover:text-primary transition-colors">{userPosts?.length || 0}</span>
                 <span className="text-muted-foreground">posts</span>
               </div>
-              <div className="flex flex-col items-center md:items-start">
-                <span className="font-bold">856</span>
+              <div className="flex flex-col items-center md:items-start group cursor-default">
+                <span className="font-bold group-hover:text-primary transition-colors">856</span>
                 <span className="text-muted-foreground">followers</span>
               </div>
-              <div className="flex flex-col items-center md:items-start">
-                <span className="font-bold">412</span>
+              <div className="flex flex-col items-center md:items-start group cursor-default">
+                <span className="font-bold group-hover:text-primary transition-colors">412</span>
                 <span className="text-muted-foreground">following</span>
               </div>
             </div>
 
             <div className="space-y-1">
               <p className="font-bold text-sm">@{user.email?.split('@')[0] || user.uid.substring(0, 8)}</p>
-              <p className="text-sm whitespace-pre-wrap">{profile?.bio || 'Discovering F-Moon!'}</p>
+              <p className="text-sm whitespace-pre-wrap max-w-md mx-auto md:mx-0">{profile?.bio || 'Discovering F-Moon!'}</p>
               {profile?.location && (
-                <p className="text-xs text-primary font-medium">{profile.location}</p>
+                <p className="text-xs text-primary font-bold flex items-center justify-center md:justify-start gap-1">
+                  <MapPin className="w-3 h-3" /> {profile.location}
+                </p>
               )}
             </div>
           </div>
@@ -147,30 +295,31 @@ export default function CurrentUserProfilePage() {
           
           <TabsContent value="posts" className="mt-8">
             {isPostsLoading ? (
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-3 gap-1 md:gap-4">
                 {[1, 2, 3, 4, 5, 6].map(i => (
-                  <div key={i} className="aspect-square bg-muted animate-pulse" />
+                  <div key={i} className="aspect-square bg-muted animate-pulse rounded-md" />
                 ))}
               </div>
             ) : userPosts?.length ? (
               <div className="grid grid-cols-3 gap-1 md:gap-6">
                 {userPosts.map((post) => (
-                  <div key={post.id} className="relative aspect-square group cursor-pointer overflow-hidden rounded-md bg-muted">
+                  <div key={post.id} className="relative aspect-square group cursor-pointer overflow-hidden rounded-md bg-muted shadow-sm hover:shadow-md transition-shadow">
                     {post.imageUrl ? (
                       <Image 
                         src={post.imageUrl} 
                         alt="User post" 
                         fill 
-                        className="object-cover transition-transform group-hover:scale-105" 
+                        className="object-cover transition-transform duration-500 group-hover:scale-110" 
                         unoptimized={post.imageUrl.startsWith('data:')}
+                        sizes="(max-width: 768px) 33vw, 300px"
                       />
                     ) : post.videoUrl ? (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <PlayCircle className="w-10 h-10 text-white opacity-50" />
-                        <video src={post.videoUrl} className="absolute inset-0 w-full h-full object-cover opacity-30" muted />
+                      <div className="w-full h-full flex items-center justify-center bg-black">
+                        <PlayCircle className="w-10 h-10 text-white opacity-50 z-10" />
+                        <video src={post.videoUrl} className="absolute inset-0 w-full h-full object-cover opacity-50 transition-opacity group-hover:opacity-70" muted />
                       </div>
                     ) : (
-                      <div className="w-full h-full bg-secondary flex items-center justify-center p-2 text-[10px] text-center italic">
+                      <div className="w-full h-full bg-secondary flex items-center justify-center p-2 text-[10px] text-center italic text-muted-foreground font-medium">
                         {post.content}
                       </div>
                     )}
@@ -178,17 +327,20 @@ export default function CurrentUserProfilePage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-20">
-                <Grid className="w-12 h-12 mx-auto mb-4 opacity-10" />
-                <p className="text-muted-foreground">No posts yet.</p>
+              <div className="text-center py-24 bg-card rounded-2xl border-2 border-dashed">
+                <Grid className="w-16 h-16 mx-auto mb-4 opacity-10 text-primary" />
+                <p className="text-muted-foreground font-medium">Share your first post with Ethiopia!</p>
+                <Button variant="link" asChild className="mt-2 text-primary">
+                   <Link href="/create">Create Post</Link>
+                </Button>
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="saved" className="mt-8">
-            <div className="text-center py-20 border-2 border-dashed rounded-xl">
-              <Bookmark className="w-12 h-12 mx-auto mb-4 opacity-10" />
-              <p className="text-muted-foreground">Saved posts will appear here.</p>
+            <div className="text-center py-24 border-2 border-dashed rounded-2xl bg-muted/20">
+              <Bookmark className="w-16 h-16 mx-auto mb-4 opacity-10 text-accent" />
+              <p className="text-muted-foreground font-medium">Saved posts will appear here.</p>
             </div>
           </TabsContent>
         </Tabs>
