@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -85,22 +86,18 @@
         "lastMessageAt": { "type": "string", "format": "date-time" }
       }
     },
-    "PostLike": {
-      "title": "PostLike",
+    "Notification": {
+      "title": "Notification",
       "type": "object",
       "properties": {
-        "postId": { "type": "string" },
-        "userId": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "Bookmark": {
-      "title": "Bookmark",
-      "type": "object",
-      "properties": {
-        "postId": { "type": "string" },
-        "userId": { "type": "string" },
-        "postData": { "type": "object" },
+        "id": { "type": "string" },
+        "recipientId": { "type": "string" },
+        "actorId": { "type": "string" },
+        "actorName": { "type": "string" },
+        "actorAvatar": { "type": "string" },
+        "type": { "type": "string", "enum": ["like", "comment", "follow", "friend_request", "friend_accept", "message"] },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     }
@@ -116,7 +113,6 @@
     "/friendships/{friendshipId}": { "schema": "Friendship", "description": "Mutual friendships." },
     "/conversations/{conversationId}": { "schema": "Conversation", "description": "Chat conversations." },
     "/messages/{messageId}": { "schema": "Message", "description": "Individual chat messages." },
-    "/post_likes/{likeId}": { "schema": "PostLike", "description": "User likes on posts." },
-    "/bookmarks/{bookmarkId}": { "schema": "Bookmark", "description": "User saved posts." }
+    "/notifications/{notifId}": { "schema": "Notification", "description": "User notifications." }
   }
 }

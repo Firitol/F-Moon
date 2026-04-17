@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
-import { useUser, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { useUser, useCollection, useMemoFirebase, useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, orderBy, limit, doc } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, MessageSquare, UserPlus, Bell } from 'lucide-react';
@@ -30,11 +31,24 @@ export default function NotificationsPage() {
 
   const { data: notifications, isLoading } = useCollection(notificationsQuery);
 
+  // Mark all unread notifications as read when viewing the page
+  useEffect(() => {
+    if (notifications && db && user) {
+      notifications.forEach(notif => {
+        if (!notif.read) {
+          updateDocumentNonBlocking(doc(db, 'notifications', notif.id), { read: true });
+        }
+      });
+    }
+  }, [notifications, db, user]);
+
   const getIcon = (type: string) => {
     switch (type) {
       case 'like': return <Heart className="w-4 h-4 text-accent fill-accent" />;
       case 'comment': return <MessageSquare className="w-4 h-4 text-primary fill-primary" />;
       case 'follow': return <UserPlus className="w-4 h-4 text-blue-500" />;
+      case 'friend_request': return <UserPlus className="w-4 h-4 text-orange-500" />;
+      case 'friend_accept': return <UserPlus className="w-4 h-4 text-green-500" />;
       default: return <Bell className="w-4 h-4 text-muted-foreground" />;
     }
   };

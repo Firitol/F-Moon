@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { 
   collection, 
   query, 
@@ -15,14 +15,13 @@ import {
   doc, 
   getDoc,
   setDoc,
-  DocumentData
 } from 'firebase/firestore';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, MessageSquare, ShieldAlert, ChevronLeft, Loader2 } from 'lucide-react';
+import { Send, MessageSquare, ShieldAlert, ChevronLeft } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
 
@@ -78,9 +77,11 @@ function ConversationItem({ conversation, currentUser, activePartnerId, onSelect
         <p className={`text-sm truncate ${isSelected ? 'font-bold text-primary' : 'font-semibold'}`}>
           {partner?.name || 'User'}
         </p>
-        <p className="text-[10px] text-muted-foreground truncate">
-          {conversation.lastMessage || 'Start a conversation'}
-        </p>
+        <div className="flex items-center gap-2">
+           <p className="text-[10px] text-muted-foreground truncate">
+            {conversation.lastMessage || 'Start a conversation'}
+          </p>
+        </div>
       </div>
     </button>
   );
@@ -112,7 +113,7 @@ function MessagesContent() {
     }
   }, [partnerParam, user]);
 
-  // Query conversations instead of just friendships
+  // Query conversations
   const convQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -135,6 +136,17 @@ function MessagesContent() {
   }, [db, activeConversationId]);
 
   const { data: messages } = useCollection(messageQuery);
+
+  // Mark incoming messages as read when viewing the conversation
+  useEffect(() => {
+    if (messages && user && db) {
+      messages.forEach(msg => {
+        if (msg.receiverId === user.uid && !msg.isRead) {
+          updateDocumentNonBlocking(doc(db, 'messages', msg.id), { isRead: true });
+        }
+      });
+    }
+  }, [messages, user, db]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -167,16 +179,16 @@ function MessagesContent() {
     const messageContent = newMessage.trim();
     setNewMessage('');
 
-    // Update conversation metadata first to ensure it appears in the list
+    // Update conversation metadata
     const convRef = doc(db, 'conversations', activeConversationId);
-    await setDoc(convRef, {
+    setDoc(convRef, {
       lastMessage: messageContent,
       lastMessageAt: new Date().toISOString(),
       participants: [user.uid, activePartnerId]
     }, { merge: true });
 
     // Add message doc
-    await addDoc(collection(db, 'messages'), {
+    addDoc(collection(db, 'messages'), {
       conversationId: activeConversationId,
       senderId: user.uid,
       receiverId: activePartnerId,
@@ -186,7 +198,7 @@ function MessagesContent() {
     });
 
     // Notify partner
-    await addDoc(collection(db, 'notifications'), {
+    addDoc(collection(db, 'notifications'), {
       recipientId: activePartnerId,
       actorId: user.uid,
       actorName: user.displayName || 'Someone',
