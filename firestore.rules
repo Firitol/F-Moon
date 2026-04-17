@@ -1,0 +1,232 @@
+rules_version = '2';
+
+/**
+ * ETHIOCONNECT FIRESTORE SECURITY RULES
+ *
+ * Core Philosophy:
+ * This ruleset implements a robust, multi-tiered authorization model designed for a social 
+ * business directory. It prioritizes User Ownership and Global Admin privileges. 
+ *
+ * Data Structure:
+ * - /users: Private account data (Owner/Admin access).
+ * - /public_user_profiles: Public-facing profile data (Public read, Owner/Admin write).
+ * - /admin_roles: A lookup collection where document existence signifies global admin status.
+ * - /businesses, /posts, /follows, /reports, /payments: Root collections utilizing 
+ *   denormalized ownership IDs (ownerId, authorId, reporterId, userId) for fast, 
+ *   independent authorization.
+ *
+ * Key Security Decisions:
+ * 1. Global Admin Override: An 'Admin' role is verified via the existence of a document 
+ *    in the '/admin_roles' collection. Admins have bypass permissions for moderation.
+ * 2. Denormalization for Authorization: Essential relational links (like 'ownerId') 
+ *    are required on documents to allow for direct ownership checks without costly 
+ *    resource lookups.
+ * 3. QAP (Query Access Patterns): Public listing for content (Posts, Businesses) 
+ *    is restricted to 'active' statuses. Non-admin clients MUST filter queries 
+ *    by status to pass security validation.
+ * 4. Structural Segregation: Sensitive account info (/users) is physically 
+ *    separated from public profile info (/public_user_profiles) to prevent 
+ *    accidental data leaks.
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the user is authenticated. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the user is a global administrator. */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admin_roles/$(request.auth.uid));
+    }
+
+    /** @description Checks if the user's UID matches the provided ID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Checks ownership and ensures the document exists for updates/deletes. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    /** @description Validates that a field is not being changed during an update. */
+    function isUnchanged(fieldName) {
+      return request.resource.data[fieldName] == resource.data[fieldName];
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Core user account data. Private to the user and admins.
+     * @path /users/{userId}
+     * @allow (create) if auth.uid matches path. (get) if owner or admin.
+     * @deny (list) if not admin.
+     * @principle Ownership and Role-Based Access Control.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if (isExistingOwner(userId) && isUnchanged('role')) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Publicly accessible user profile details.
+     * @path /public_user_profiles/{userId}
+     * @allow (get, list) if true. (create, update) if owner or admin.
+     * @deny (delete) if not admin.
+     * @principle Structural Segregation for public/private data.
+     */
+    match /public_user_profiles/{userId} {
+      allow get, list: if true;
+      allow create: if isOwner(userId) || isAdmin();
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Marker collection for administrator privileges.
+     * @path /admin_roles/{adminId}
+     * @allow (get, list, write) if admin.
+     * @deny (any) if not admin.
+     * @principle Existence-over-content for global roles.
+     */
+    match /admin_roles/{adminId} {
+      allow read, write: if isAdmin();
+    }
+
+    /**
+     * @description Business categories lookup table.
+     * @path /business_categories/{categoryId}
+     * @allow (get, list) if true. (write) if admin.
+     * @deny (write) if not admin.
+     * @principle Read-only for general users, admin-managed.
+     */
+    match /business_categories/{categoryId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    /**
+     * @description Business profiles. Owners can manage, admins can moderate.
+     * @path /businesses/{businessId}
+     * @allow (get) if active or owner/admin. (list) if query filters for active.
+     * @deny (create) if ownerId doesn't match auth.
+     * @principle QAP validation and ownership integrity.
+     */
+    match /businesses/{businessId} {
+      allow get: if isAdmin() || resource.data.status == 'active' || isOwner(resource.data.ownerId);
+      allow list: if isAdmin() || request.query.status == 'active';
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if (isExistingOwner(resource.data.ownerId) && isUnchanged('ownerId')) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Subscription plans lookup table.
+     * @path /subscription_plans/{planId}
+     * @allow (get, list) if true. (write) if admin.
+     * @principle Admin-managed static data.
+     */
+    match /subscription_plans/{planId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    /**
+     * @description Business subscriptions. Uses denormalized ownerId for auth.
+     * @path /business_subscriptions/{subscriptionId}
+     * @allow (get) if business owner or admin.
+     * @deny (list) if not admin.
+     * @principle Authorization Independence via denormalization.
+     */
+    match /business_subscriptions/{subscriptionId} {
+      allow get: if isOwner(resource.data.ownerId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.ownerId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    /**
+     * @description User-generated posts. Supports public viewing of active posts.
+     * @path /posts/{postId}
+     * @allow (list) if filtered by active. (create) if authorId matches auth.
+     * @principle Relational integrity for authorId.
+     */
+    match /posts/{postId} {
+      allow get: if isAdmin() || resource.data.status == 'active' || isOwner(resource.data.authorId);
+      allow list: if isAdmin() || request.query.status == 'active';
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      allow update: if (isExistingOwner(resource.data.authorId) && isUnchanged('authorId')) || isAdmin();
+      allow delete: if isExistingOwner(resource.data.authorId) || isAdmin();
+
+      /**
+       * @description Comments on posts. Uses denormalized postStatus for public reads.
+       */
+      match /comments/{commentId} {
+        allow get: if isAdmin() || (resource.data.status == 'active' && resource.data.postStatus == 'active') || isOwner(resource.data.authorId);
+        allow list: if isAdmin() || (request.query.status == 'active' && request.query.postStatus == 'active');
+        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+        allow update: if (isExistingOwner(resource.data.authorId) && isUnchanged('authorId')) || isAdmin();
+        allow delete: if isExistingOwner(resource.data.authorId) || isAdmin();
+      }
+
+      /**
+       * @description Post likes. Document ID is the userId for uniqueness.
+       */
+      match /likes/{userId} {
+        allow get: if true;
+        allow list: if true;
+        allow create: if isOwner(userId);
+        allow delete: if isExistingOwner(userId) || isAdmin();
+        allow update: if false; // Likes are usually not updated
+      }
+    }
+
+    /**
+     * @description Social graph (follows).
+     * @path /follows/{followId}
+     * @allow (create, delete) if followerId matches auth.
+     * @principle User-scoped relationship management.
+     */
+    match /follows/{followId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.followerId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isExistingOwner(resource.data.followerId) || isAdmin();
+    }
+
+    /**
+     * @description Financial transaction records.
+     * @path /payments/{paymentId}
+     * @allow (get) if payer or admin. (list) if owner or admin.
+     * @principle Highly restrictive read access for sensitive data.
+     */
+    match /payments/{paymentId} {
+      allow get: if isOwner(resource.data.userId) || isAdmin();
+      allow list: if isAdmin() || (isSignedIn() && request.query.userId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Moderation reports. Reporters can see their own.
+     * @path /reports/{reportId}
+     * @allow (get) if reporter or admin.
+     * @principle Secure reporting and administration.
+     */
+    match /reports/{reportId} {
+      allow get: if isOwner(resource.data.reporterId) || isAdmin();
+      allow list: if isAdmin() || (isSignedIn() && request.query.reporterId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.reporterId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}

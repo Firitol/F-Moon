@@ -1,0 +1,711 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account within the EthioConnect application, including authentication-related details (excluding passwords) and administrative roles.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address, used for login and notifications.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "The user's phone number, optional for login or contact."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user, determining access levels (e.g., Admin, NormalUser, BusinessOwner)."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the user account (e.g., active, suspended, deleted), managed by admins for moderation."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user account was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the user account was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "role",
+        "status",
+        "createdAt"
+      ]
+    },
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Contains public profile details for a user, separate from core account information.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User associated with this profile. (Relationship: User 1:1 UserProfile)"
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biographical description provided by the user."
+        },
+        "profilePictureUrl": {
+          "type": "string",
+          "description": "URL to the user's profile picture.",
+          "format": "uri"
+        },
+        "location": {
+          "type": "string",
+          "description": "A user-provided text description of their general location."
+        }
+      },
+      "required": [
+        "id",
+        "userId"
+      ]
+    },
+    "BusinessCategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessCategory",
+      "type": "object",
+      "description": "A lookup table for categorizing different types of businesses.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the BusinessCategory entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the business category (e.g., 'Hotel', 'Shop', 'Service')."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Business": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Business",
+      "type": "object",
+      "description": "Represents a local business registered on EthioConnect, providing details for promotion and discovery.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Business entity."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to the User who owns and manages this business profile. (Relationship: User 1:N Business)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The official name of the business."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to the category this business belongs to. (Relationship: BusinessCategory 1:N Business)"
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the business, its services, or products."
+        },
+        "locationDescription": {
+          "type": "string",
+          "description": "A human-readable description of the business's location, complementing external map integrations."
+        },
+        "contactPhone": {
+          "type": "string",
+          "description": "The primary contact phone number for the business."
+        },
+        "contactWhatsApp": {
+          "type": "string",
+          "description": "The WhatsApp contact number for the business, if available."
+        },
+        "isVerified": {
+          "type": "boolean",
+          "description": "Indicates if the business has a verified badge (a paid feature)."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current approval status of the business profile (e.g., pending, active, suspended, rejected), managed by admins."
+        },
+        "currentSubscriptionId": {
+          "type": "string",
+          "description": "Reference to the BusinessSubscription currently active for this business. (Relationship: BusinessSubscription 1:1 Business)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the business profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the business profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "name",
+        "categoryId",
+        "description",
+        "contactPhone",
+        "isVerified",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Post": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Post",
+      "type": "object",
+      "description": "Represents a user-generated update or a business promotion, visible in the feed.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Post entity."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "Reference to the User who created the post. (Relationship: User 1:N Post)"
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the post."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL to an image associated with the post, if any.",
+          "format": "uri"
+        },
+        "isPromoted": {
+          "type": "boolean",
+          "description": "Indicates if this post is a paid promotion."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the post (e.g., active, moderated, deleted), managed by admins."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the post was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the post was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "authorId",
+        "content",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Comment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Comment",
+      "type": "object",
+      "description": "Represents a comment made by a user on a post.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Comment entity."
+        },
+        "postId": {
+          "type": "string",
+          "description": "Reference to the Post this comment belongs to. (Relationship: Post 1:N Comment)"
+        },
+        "authorId": {
+          "type": "string",
+          "description": "Reference to the User who made the comment. (Relationship: User 1:N Comment)"
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the comment."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the comment (e.g., active, moderated, deleted), managed by admins."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the comment was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the comment was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "postId",
+        "authorId",
+        "content",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Like": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Like",
+      "type": "object",
+      "description": "Represents a user's 'like' on a post.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Like entity."
+        },
+        "postId": {
+          "type": "string",
+          "description": "Reference to the Post that was liked. (Relationship: Post 1:N Like)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who liked the post. (Relationship: User 1:N Like)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the like was recorded.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "postId",
+        "userId",
+        "createdAt"
+      ]
+    },
+    "Follow": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Follow",
+      "type": "object",
+      "description": "Records when one user follows another user or a business.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Follow entity."
+        },
+        "followerId": {
+          "type": "string",
+          "description": "Reference to the User who initiated the follow. (Relationship: User 1:N Follow)"
+        },
+        "followingUserId": {
+          "type": "string",
+          "description": "Reference to the User being followed, if applicable. (Relationship: User 1:N Follow)"
+        },
+        "followingBusinessId": {
+          "type": "string",
+          "description": "Reference to the Business being followed, if applicable. (Relationship: Business 1:N Follow)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the follow relationship was established.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "followerId",
+        "createdAt"
+      ]
+    },
+    "SubscriptionPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubscriptionPlan",
+      "type": "object",
+      "description": "Defines the different subscription plans available for businesses.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SubscriptionPlan entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the subscription plan (e.g., 'Free', 'Basic', 'Premium')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the plan's offerings."
+        },
+        "price": {
+          "type": "number",
+          "description": "The monetary cost of the subscription plan for its duration."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the subscription price (e.g., 'ETB')."
+        },
+        "features": {
+          "type": "array",
+          "description": "A list of features included in this subscription plan.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "durationInDays": {
+          "type": "number",
+          "description": "The duration of the subscription plan in days (e.g., 30 for monthly)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "price",
+        "currency",
+        "durationInDays"
+      ]
+    },
+    "BusinessSubscription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BusinessSubscription",
+      "type": "object",
+      "description": "Records a specific business's active or past subscription to a plan.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the BusinessSubscription entity."
+        },
+        "businessId": {
+          "type": "string",
+          "description": "Reference to the Business that holds this subscription. (Relationship: Business 1:N BusinessSubscription)"
+        },
+        "planId": {
+          "type": "string",
+          "description": "Reference to the SubscriptionPlan this business is subscribed to. (Relationship: SubscriptionPlan 1:N BusinessSubscription)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The date and time when the subscription became active.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The date and time when the subscription is set to expire.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the subscription (e.g., active, expired, cancelled)."
+        },
+        "lastPaymentId": {
+          "type": "string",
+          "description": "Reference to the last successful Payment transaction for this subscription. (Relationship: Payment 1:N BusinessSubscription)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the subscription record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the subscription record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "businessId",
+        "planId",
+        "startDate",
+        "endDate",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Payment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payment",
+      "type": "object",
+      "description": "Records all financial transactions within the application, including subscriptions and feature purchases.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Payment entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who made the payment. (Relationship: User 1:N Payment)"
+        },
+        "businessId": {
+          "type": "string",
+          "description": "Optional reference to the Business entity if the payment is for a business service (e.g., subscription for a business). (Relationship: Business 1:N Payment)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount paid in the transaction."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the payment (e.g., 'ETB')."
+        },
+        "method": {
+          "type": "string",
+          "description": "The payment method used (e.g., 'Telebirr', 'CBE Birr', 'Chapa')."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the payment (e.g., pending, completed, failed, refunded)."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of purchase or service the payment is for (e.g., 'subscription', 'verifiedBadge', 'promotedPost', 'featuredListing')."
+        },
+        "relatedEntityId": {
+          "type": "string",
+          "description": "Optional reference to an entity related to this payment, e.g., a Post ID if for a 'promotedPost'."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the payment record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the payment record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "amount",
+        "currency",
+        "method",
+        "status",
+        "type",
+        "createdAt"
+      ]
+    },
+    "Report": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Report",
+      "type": "object",
+      "description": "Records user-generated reports on problematic content or users for administrative moderation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Report entity."
+        },
+        "reporterId": {
+          "type": "string",
+          "description": "Reference to the User who submitted the report. (Relationship: User 1:N Report)"
+        },
+        "reportedEntityType": {
+          "type": "string",
+          "description": "The type of entity being reported (e.g., 'User', 'Business', 'Post', 'Comment')."
+        },
+        "reportedEntityId": {
+          "type": "string",
+          "description": "The unique identifier of the reported entity."
+        },
+        "reason": {
+          "type": "string",
+          "description": "A description provided by the reporter explaining the reason for the report."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the report (e.g., pending, underReview, resolved, dismissed), managed by admins."
+        },
+        "resolvedByAdminId": {
+          "type": "string",
+          "description": "Optional reference to the Admin User who resolved this report. (Relationship: User 1:N Report)"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "description": "Timestamp when the report was resolved by an admin.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the report was submitted.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the report record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "reporterId",
+        "reportedEntityType",
+        "reportedEntityId",
+        "reason",
+        "status",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Contains core user account information (email, phone, role, status). This data is private, accessible only by the owning user or administrators. The UserProfile details (bio, profilePictureUrl, location) are merged into this User entity for owner/admin management, but a public view is provided via '/public_user_profiles'."
+        }
+      },
+      {
+        "path": "/public_user_profiles/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Publicly accessible profile details for a user. This collection is readable by all users. Write access is restricted to the owning user or administrators. It represents denormalized public fields from the core User entity."
+        }
+      },
+      {
+        "path": "/admin_roles/{adminId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "A dedicated collection to signify administrator roles. The mere existence of a document at `/admin_roles/request.auth.uid` grants admin privileges in security rules, adhering to the 'existence over content' principle for global roles."
+        }
+      },
+      {
+        "path": "/business_categories/{categoryId}",
+        "definition": {
+          "entityName": "BusinessCategory",
+          "schema": {
+            "$ref": "#/backend/entities/BusinessCategory"
+          },
+          "description": "A static lookup table for categorizing businesses. This collection is readable by all users and writeable only by administrators."
+        }
+      },
+      {
+        "path": "/businesses/{businessId}",
+        "definition": {
+          "entityName": "Business",
+          "schema": {
+            "$ref": "#/backend/entities/Business"
+          },
+          "description": "Contains detailed profiles for businesses. Documents are owned by the `ownerId` specified in the document. Businesses with `status: 'active'` are generally viewable, while all statuses are manageable by the `ownerId` or administrators. The `ownerId` field is self-contained for authorization independence."
+        }
+      },
+      {
+        "path": "/subscription_plans/{planId}",
+        "definition": {
+          "entityName": "SubscriptionPlan",
+          "schema": {
+            "$ref": "#/backend/entities/SubscriptionPlan"
+          },
+          "description": "A static lookup table defining available business subscription plans. This collection is readable by all users and writeable only by administrators."
+        }
+      },
+      {
+        "path": "/business_subscriptions/{subscriptionId}",
+        "definition": {
+          "entityName": "BusinessSubscription",
+          "schema": {
+            "$ref": "#/backend/entities/BusinessSubscription"
+          },
+          "description": "Records active or past subscription details for businesses. Includes denormalized `ownerId` from the associated Business document for authorization independence, allowing the business owner or administrators to manage it without `get()` calls."
+        }
+      },
+      {
+        "path": "/posts/{postId}",
+        "definition": {
+          "entityName": "Post",
+          "schema": {
+            "$ref": "#/backend/entities/Post"
+          },
+          "description": "Represents user-generated updates or business promotions. Owned by `authorId`. Includes an optional `businessId` if it's a business post, and if present, denormalized `businessOwnerId` for authorization independence. Posts with `status: 'active'` are publicly readable (requiring client-side `where('status', '==', 'active')` for QAPs). Only the `authorId` or administrators can modify posts, and administrators can read all posts regardless of status."
+        }
+      },
+      {
+        "path": "/posts/{postId}/comments/{commentId}",
+        "definition": {
+          "entityName": "Comment",
+          "schema": {
+            "$ref": "#/backend/entities/Comment"
+          },
+          "description": "Comments on specific posts. Owned by `authorId`. Denormalizes `postAuthorId`, `postBusinessId` (if exists), `postBusinessOwnerId` (if exists), and `postStatus` from the parent Post for authorization independence. Comments with `status: 'active'` and on 'active' posts are publicly readable (requiring client-side filters for QAPs). Only the `authorId` or administrators can modify comments, and administrators can read all comments regardless of status."
+        }
+      },
+      {
+        "path": "/posts/{postId}/likes/{userId}",
+        "definition": {
+          "entityName": "Like",
+          "schema": {
+            "$ref": "#/backend/entities/Like"
+          },
+          "description": "Records user 'likes' on posts, with the document ID being the `userId` to ensure a unique like per user per post. Denormalizes `postAuthorId`, `postBusinessId` (if exists), `postBusinessOwnerId` (if exists), and `postStatus` from the parent Post for authorization independence. Only the `userId` in the path can create/delete their own like, and administrators can manage all likes."
+        }
+      },
+      {
+        "path": "/follows/{followId}",
+        "definition": {
+          "entityName": "Follow",
+          "schema": {
+            "$ref": "#/backend/entities/Follow"
+          },
+          "description": "Records relationships where one user follows another user or a business. Contains `followerId`, and either `followingUserId` or `followingBusinessId`. The `followerId` is the primary determinant for write access, ensuring authorization independence for managing one's own follow relationships. Admins can manage all follow records."
+        }
+      },
+      {
+        "path": "/payments/{paymentId}",
+        "definition": {
+          "entityName": "Payment",
+          "schema": {
+            "$ref": "#/backend/entities/Payment"
+          },
+          "description": "Records all financial transactions. Owned by `userId` (the payer). If `businessId` is present, denormalizes `businessOwnerId` from the associated Business document for authorization independence and simplified admin queries. Users can view their own payments, and administrators have full management access."
+        }
+      },
+      {
+        "path": "/reports/{reportId}",
+        "definition": {
+          "entityName": "Report",
+          "schema": {
+            "$ref": "#/backend/entities/Report"
+          },
+          "description": "User-generated reports for moderation. Owned by `reporterId`. Reporters can view and update their own reports. Administrators have full management access to all reports, regardless of status or reporter, facilitating moderation via the admin dashboard."
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure prioritizes secure, scalable, and debuggable authorization by strictly adhering to the core design principles and strategy mandates. \n\n**Authorization Independence (CRITICAL) & Denormalization:**\nAuthorization independence is achieved by extensively applying denormalization (Mandate A). Instead of relying on `get()` calls to parent or related documents within security rules, key authorization-relevant fields are copied directly into the documents that require them. This is critical for robust security rules and for enabling atomic batch writes and transactions without breaking rule evaluations. For instance:\n*   **Posts, Comments, and Likes:** `postAuthorId`, `postBusinessId`, `postBusinessOwnerId`, and `postStatus` are denormalized into `Comment` and `Like` documents. This allows rules to verify ownership and content status of the parent post for subcollection items without a `get()` call.\n*   **Business Subscriptions and Payments:** The `ownerId` of a `Business` is denormalized into `BusinessSubscription` documents, and `businessOwnerId` into `Payment` documents (if related to a business). This enables rules to verify that the `request.auth.uid` is the owner of the associated business directly from the document itself, rather than performing a `get()` on the `Business` document.\n\n**QAPs (Rules are not Filters) & Structural Segregation:**\nQAPs (Query Access Patterns) are supported through a combination of structural segregation (Mandate B) and explicit client-side filtering. \n*   **Structural Segregation:** For publicly accessible user profiles, `/public_user_profiles/{userId}` is used. This separates publicly visible data from sensitive user account information stored in `/users/{userId}`, ensuring homogeneous security posture (Mandate B).\n*   **Explicit State Modeling:** All entities utilize a dedicated `status` field (Mandate D.1). For collections where documents have varying visibility based on their `status` (e.g., `Post` documents with `status: 'active'`), security rules will enforce that `list` operations from non-admin users *must* include a client-side filter (e.g., `query.where('status', '==', 'active')`). The rule will then verify that `request.query.get('status') == 'active'`. This ensures that rules are not attempting to 'filter' results (which Firestore rules cannot do effectively) but rather validating the client's explicit query, making `list` operations secure and performant.\n*   **Global Roles (DBAC):** Admin access is determined by the *existence* of a document in `/admin_roles/{adminId}` (Mandate C.4). This provides a simple, explicit, and highly performant way to grant elevated privileges in rules for managing users, businesses, posts, reports, and payments across the system, addressing the admin dashboard requirements.\n\nThis architecture minimizes rule complexity by moving authorization logic into the data structure itself and standardizing access patterns, leading to a secure, scalable, and highly debuggable Firestore implementation."
+  }
+}
