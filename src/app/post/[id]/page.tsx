@@ -10,18 +10,22 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Send, MessageSquare } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function PostDetailPage() {
   const { id } = useParams();
-  const { user } = userUser(); // Corrected userUser to useUser via standard hooks
   const { user: currentUser } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const postRef = useMemoFirebase(() => {
     if (!db || !id) return null;
@@ -46,27 +50,23 @@ export default function PostDetailPage() {
     if (!currentUser || !db || !id || !newComment.trim()) return;
 
     setIsSubmitting(true);
-    try {
-      addDocumentNonBlocking(collection(db, 'comments'), {
-        postId: id,
-        authorId: currentUser.uid,
-        authorName: currentUser.displayName || 'Anonymous',
-        authorAvatar: currentUser.photoURL || '',
-        content: newComment.trim(),
-        createdAt: new Date().toISOString()
-      });
+    
+    addDocumentNonBlocking(collection(db, 'comments'), {
+      postId: id,
+      authorId: currentUser.uid,
+      authorName: currentUser.displayName || 'Anonymous',
+      authorAvatar: currentUser.photoURL || '',
+      content: newComment.trim(),
+      createdAt: new Date().toISOString()
+    });
 
-      updateDocumentNonBlocking(doc(db, 'posts', id as string), {
-        commentsCount: increment(1)
-      });
+    updateDocumentNonBlocking(doc(db, 'posts', id as string), {
+      commentsCount: increment(1)
+    });
 
-      setNewComment('');
-      toast({ title: "Comment added!" });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
+    setNewComment('');
+    setIsSubmitting(false);
+    toast({ title: "Comment added!" });
   };
 
   if (isPostLoading) return <div className="p-20 text-center animate-pulse">Loading Post...</div>;
@@ -75,8 +75,9 @@ export default function PostDetailPage() {
     return (
       <div className="min-h-screen">
         <Navbar />
-        <main className="max-w-2xl mx-auto p-8 text-center">
+        <main className="max-w-2xl mx-auto p-8 text-center mt-20">
           <h1 className="text-2xl font-bold">Post Not Found</h1>
+          <Button variant="link" asChild className="mt-4"><a href="/">Back to Feed</a></Button>
         </main>
       </div>
     );
@@ -85,7 +86,7 @@ export default function PostDetailPage() {
   return (
     <div className="min-h-screen pb-20 md:pt-16 bg-secondary/10">
       <Navbar />
-      <main className="max-w-4xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mt-4">
+      <main className="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mt-4">
         <div className="space-y-4">
           <PostCard post={post} priority={true} />
         </div>
@@ -116,7 +117,7 @@ export default function PostDetailPage() {
                       <p className="text-sm text-foreground leading-relaxed">{comment.content}</p>
                     </div>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold pl-2">
-                      {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'Just now'}
+                      {mounted && comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'Just now'}
                     </p>
                   </div>
                 </div>

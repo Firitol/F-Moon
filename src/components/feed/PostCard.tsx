@@ -23,9 +23,6 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   const db = useFirestore();
   const { toast } = useToast();
   
-  const [isLiking, setIsLiking] = useState(false);
-  const [isBookmarking, setIsBookmarking] = useState(false);
-
   // Check if user liked this post
   const likeRef = useMemoFirebase(() => {
     if (!db || !user || !post.id) return null;
@@ -93,7 +90,13 @@ export function PostCard({ post, priority = false }: PostCardProps) {
       setDocumentNonBlocking(bookmarkRef!, {
         postId: post.id,
         userId: user.uid,
-        postData: post,
+        postData: {
+          id: post.id,
+          content: post.content,
+          imageUrl: post.imageUrl || '',
+          videoUrl: post.videoUrl || '',
+          userName: post.userName
+        },
         createdAt: new Date().toISOString()
       }, { merge: true });
       toast({ title: "Saved to Bookmarks" });
@@ -103,6 +106,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   const handleShare = async () => {
     const url = `${window.location.origin}/post/${post.id}`;
     
+    // Check if navigator.share is available and allowed
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
@@ -110,17 +114,22 @@ export function PostCard({ post, priority = false }: PostCardProps) {
           text: post.content,
           url: url,
         });
-        return;
+        return; // Successfully shared via system dialog
       } catch (err) {
-        // Fall back to clipboard copy if share is denied or fails
+        // If user cancelled, just stop. Otherwise, fallback to clipboard.
+        if ((err as Error).name === 'AbortError') return;
       }
     }
     
+    // Fallback to clipboard
     try {
-      await navigator.clipboard.writeText(url);
-      toast({ title: "Link Copied", description: "Share it with your friends!" });
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Link Copied", description: "Post link copied to your clipboard!" });
+      }
     } catch (err) {
-      toast({ title: "Error", description: "Failed to copy link.", variant: "destructive" });
+      // In cases where clipboard is also blocked (e.g. non-secure contexts)
+      console.warn('Sharing failed completely', err);
     }
   };
 
@@ -179,7 +188,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
               />
             </div>
           ) : (
-             <div className="p-6 text-lg font-medium bg-muted/30 italic">
+             <div className="p-6 text-lg font-medium bg-muted/30 italic min-h-[200px] flex items-center justify-center">
                "{post.content}"
              </div>
           )}
