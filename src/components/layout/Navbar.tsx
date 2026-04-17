@@ -2,58 +2,80 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Compass, PlusSquare, User, Bell, Search, Briefcase } from 'lucide-react';
+import { Home, Compass, PlusSquare, User, Bell, Search, Briefcase, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Logo } from '@/components/layout/Logo';
 
 export function Navbar() {
   return (
     <>
       {/* Desktop Navbar */}
-      <nav className="fixed top-0 w-full bg-background border-b z-50 h-16 hidden md:flex items-center justify-between px-8">
-        <Link href="/" className="text-2xl font-headline font-bold text-primary italic">
-          EthioConnect
+      <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b z-50 h-16 hidden md:flex items-center justify-between px-8">
+        <Link href="/">
+          <Logo />
         </Link>
         
         <div className="flex-1 max-w-sm mx-4">
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search people & businesses..."
-              className="pl-8 bg-secondary/50 border-none rounded-full"
+              placeholder="Search Ethiopia..."
+              className="pl-10 bg-secondary/50 border-none rounded-full h-9 focus-visible:ring-1 focus-visible:ring-primary"
             />
           </div>
         </div>
 
         <div className="flex items-center gap-6">
-          <Link href="/" className="hover:text-primary transition-colors"><Home className="w-6 h-6" /></Link>
-          <Link href="/explore" className="hover:text-primary transition-colors"><Compass className="w-6 h-6" /></Link>
-          <Link href="/business" className="hover:text-primary transition-colors"><Briefcase className="w-6 h-6" /></Link>
-          <Link href="/notifications" className="hover:text-primary transition-colors"><Bell className="w-6 h-6" /></Link>
-          <Link href="/profile" className="hover:text-primary transition-colors"><User className="w-6 h-6" /></Link>
-          <Button variant="default" className="rounded-full bg-primary hover:bg-primary/90">
+          <Link href="/" className="text-muted-foreground hover:text-primary transition-colors"><Home className="w-6 h-6" /></Link>
+          <Link href="/explore" className="text-muted-foreground hover:text-primary transition-colors"><Compass className="w-6 h-6" /></Link>
+          <Link href="/business" className="text-muted-foreground hover:text-primary transition-colors"><Briefcase className="w-6 h-6" /></Link>
+          <Link href="/notifications" className="text-muted-foreground hover:text-primary transition-colors"><Bell className="w-6 h-6" /></Link>
+          <Link href="/profile" className="text-muted-foreground hover:text-primary transition-colors"><User className="w-6 h-6" /></Link>
+          <Button variant="default" className="rounded-full bg-primary hover:bg-primary/90 px-6 h-9">
             Post
           </Button>
         </div>
       </nav>
 
       {/* Mobile Top Header */}
-      <header className="fixed top-0 w-full bg-background border-b z-50 h-14 flex md:hidden items-center justify-between px-4">
-        <span className="text-xl font-headline font-bold text-primary italic">EthioConnect</span>
-        <div className="flex gap-4">
-          <Bell className="w-6 h-6" />
-          <Search className="w-6 h-6" />
+      <header className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b z-50 h-14 flex md:hidden items-center justify-between px-4">
+        <Link href="/">
+          <Logo iconClassName="w-8 h-8" />
+        </Link>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-9 w-9">
+            <Search className="w-5 h-5" />
+          </Button>
+          <Link href="/notifications">
+            <Button variant="ghost" size="icon" className="h-9 w-9 relative">
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-background" />
+            </Button>
+          </Link>
         </div>
       </header>
 
       {/* Mobile Bottom Tab Bar */}
-      <nav className="fixed bottom-0 w-full bg-background border-t z-50 h-16 flex md:hidden items-center justify-around px-2">
-        <Link href="/" className="p-2"><Home className="w-6 h-6" /></Link>
-        <Link href="/explore" className="p-2"><Compass className="w-6 h-6" /></Link>
-        <Link href="/create" className="p-2 text-primary"><PlusSquare className="w-8 h-8" /></Link>
-        <Link href="/business" className="p-2"><Briefcase className="w-6 h-6" /></Link>
-        <Link href="/profile" className="p-2"><User className="w-6 h-6" /></Link>
+      <nav className="fixed bottom-0 w-full bg-background/95 backdrop-blur-md border-t z-50 h-16 flex md:hidden items-center justify-around px-2 pb-safe">
+        <Link href="/" className="p-2 text-muted-foreground active:text-primary transition-colors">
+          <Home className="w-6 h-6" />
+        </Link>
+        <Link href="/explore" className="p-2 text-muted-foreground active:text-primary transition-colors">
+          <Compass className="w-6 h-6" />
+        </Link>
+        <Link href="/create" className="p-2 flex items-center justify-center">
+          <div className="bg-primary p-2 rounded-xl shadow-lg transform active:scale-95 transition-transform">
+            <PlusSquare className="w-6 h-6 text-white" />
+          </div>
+        </Link>
+        <Link href="/business" className="p-2 text-muted-foreground active:text-primary transition-colors">
+          <Briefcase className="w-6 h-6" />
+        </Link>
+        <Link href="/profile" className="p-2 text-muted-foreground active:text-primary transition-colors">
+          <User className="w-6 h-6" />
+        </Link>
       </nav>
     </>
   );

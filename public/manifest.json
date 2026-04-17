@@ -2,21 +2,25 @@
 {
   "name": "EthioConnect",
   "short_name": "EthioConnect",
-  "description": "Discover Ethiopian businesses and community.",
+  "description": "Discover and connect with the local Ethiopian community and businesses.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ae6f22",
+  "background_color": "#FDF5EA",
+  "theme_color": "#CD7B15",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/ethio/192/192",
+      "src": "https://picsum.photos/seed/ethio-icon-192/192/192",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://picsum.photos/seed/ethio/512/512",
+      "src": "https://picsum.photos/seed/ethio-icon-512/512/512",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": ["social", "business", "lifestyle"]
 }
