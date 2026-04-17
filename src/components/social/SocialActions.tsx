@@ -132,54 +132,56 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
   const isMinimal = variant === 'minimal';
 
   return (
-    <div className={cn("flex flex-wrap gap-2 items-center", className)}>
-      <Button 
-        variant={isFollowing ? "outline" : "default"} 
-        size={isMinimal ? "sm" : "default"}
-        onClick={handleFollow}
-        className={cn("font-bold transition-all active:scale-95", isMinimal && "h-8 px-3 text-[10px]")}
-      >
-        {isFollowing ? <UserMinus className="w-4 h-4 mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
-        {isFollowing ? "Unfollow" : "Follow"}
-      </Button>
+    <div className={cn("flex flex-col gap-2 w-full", className)}>
+      <div className="flex gap-2 w-full">
+        <Button 
+          variant={isFollowing ? "outline" : "default"} 
+          size={isMinimal ? "sm" : "default"}
+          onClick={handleFollow}
+          className={cn("flex-1 font-bold transition-all active:scale-95", isMinimal && "h-8 px-2 text-[10px]")}
+        >
+          {isFollowing ? <UserMinus className="w-4 h-4 mr-1" /> : <UserPlus className="w-4 h-4 mr-1" />}
+          {isFollowing ? "Unfollow" : "Follow"}
+        </Button>
 
-      {!isBusiness && (
-        <>
-          {isFriend ? (
-            <Button 
-              variant="secondary" 
-              size={isMinimal ? "sm" : "default"} 
-              className={cn("font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-all active:scale-95", isMinimal && "h-8 px-3 text-[10px]")}
-              onClick={startChat}
-            >
-              <MessageSquare className="w-4 h-4 mr-2" /> Message
-            </Button>
-          ) : incomingRequest ? (
-            <Button variant="default" size={isMinimal ? "sm" : "default"} className={cn("bg-green-600 hover:bg-green-700 font-bold transition-all active:scale-95", isMinimal && "h-8 px-3 text-[10px]")} onClick={acceptRequest}>
-              <UserCheck className="w-4 h-4 mr-2" /> Accept
-            </Button>
-          ) : (
-            <Button 
-              variant={outgoingRequest ? "outline" : "secondary"} 
-              size={isMinimal ? "sm" : "default"} 
-              onClick={handleFriendRequest}
-              className={cn("font-bold transition-all active:scale-95", isMinimal && "h-8 px-3 text-[10px]")}
-            >
-              {outgoingRequest ? <UserX className="w-4 h-4 mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
-              {outgoingRequest ? "Pending" : "Add Friend"}
-            </Button>
-          )}
-        </>
-      )}
+        {!isBusiness && (
+          <>
+            {isFriend ? (
+              <Button 
+                variant="secondary" 
+                size={isMinimal ? "sm" : "default"} 
+                className={cn("flex-1 font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-all active:scale-95", isMinimal && "h-8 px-2 text-[10px]")}
+                onClick={startChat}
+              >
+                <MessageSquare className="w-4 h-4 mr-1" /> Message
+              </Button>
+            ) : incomingRequest ? (
+              <Button variant="default" size={isMinimal ? "sm" : "default"} className={cn("flex-1 bg-green-600 hover:bg-green-700 font-bold transition-all active:scale-95", isMinimal && "h-8 px-2 text-[10px]")} onClick={acceptRequest}>
+                <UserCheck className="w-4 h-4 mr-1" /> Accept
+              </Button>
+            ) : (
+              <Button 
+                variant={outgoingRequest ? "outline" : "secondary"} 
+                size={isMinimal ? "sm" : "default"} 
+                onClick={handleFriendRequest}
+                className={cn("flex-1 font-bold transition-all active:scale-95", isMinimal && "h-8 px-2 text-[10px]")}
+              >
+                {outgoingRequest ? <UserX className="w-4 h-4 mr-1" /> : <UserPlus className="w-4 h-4 mr-1" />}
+                {outgoingRequest ? "Pending" : "Add Friend"}
+              </Button>
+            )}
+          </>
+        )}
+      </div>
 
       {isBusiness && (
         <Button 
           variant="outline" 
           size={isMinimal ? "sm" : "default"} 
-          className={cn("font-bold border-primary text-primary hover:bg-primary/5 transition-all active:scale-95", isMinimal && "h-8 px-3 text-[10px]")}
+          className={cn("w-full font-bold border-primary text-primary hover:bg-primary/5 transition-all active:scale-95", isMinimal && "h-8 px-2 text-[10px]")}
           onClick={startChat}
         >
-          <MessageSquare className="w-4 h-4 mr-2" /> Inquire
+          <MessageSquare className="w-4 h-4 mr-2" /> Business Inquiry
         </Button>
       )}
     </div>

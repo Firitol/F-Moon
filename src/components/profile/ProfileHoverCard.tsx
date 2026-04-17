@@ -50,7 +50,7 @@ export function ProfileHoverCard({ children, id, type, initialData }: ProfileHov
                 {(data?.name || data?.userName || 'F')[0]}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 flex-1 min-w-0">
                <SocialActions 
                 targetUserId={targetIdForSocial} 
                 isBusiness={type === 'business'} 
@@ -61,11 +61,11 @@ export function ProfileHoverCard({ children, id, type, initialData }: ProfileHov
 
           <div className="space-y-1">
             <div className="flex items-center gap-1">
-              <h3 className="font-headline font-bold text-lg leading-tight">
+              <h3 className="font-headline font-bold text-lg leading-tight truncate">
                 {data?.name || data?.userName || 'Loading...'}
               </h3>
               {(data?.isVerified || type === 'business') && (
-                <BadgeCheck className="w-4 h-4 text-primary fill-primary/10" />
+                <BadgeCheck className="w-4 h-4 text-primary fill-primary/10 flex-shrink-0" />
               )}
             </div>
             {type === 'user' ? (
