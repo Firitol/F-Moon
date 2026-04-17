@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ProfileHoverCard } from '@/components/profile/ProfileHoverCard';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, deleteDoc, updateDoc, increment, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, updateDoc, increment, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -129,7 +129,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   };
 
   return (
-    <Card className="w-full max-w-xl mx-auto border-none shadow-none md:border md:shadow-sm mb-6 rounded-none md:rounded-lg overflow-hidden bg-card">
+    <Card className="w-full max-w-xl mx-auto border-none shadow-none md:border md:shadow-sm mb-6 rounded-none md:rounded-lg overflow-hidden bg-card transition-all">
       <CardHeader className="flex flex-row items-center justify-between p-3">
         <div className="flex items-center gap-3">
           <ProfileHoverCard id={post.authorId} type="user" initialData={{ name: post.userName, avatar: post.userAvatar }}>
@@ -158,27 +158,36 @@ export function PostCard({ post, priority = false }: PostCardProps) {
       </CardHeader>
       
       <CardContent className="p-0">
-        {post.videoUrl ? (
-          <div className="relative aspect-square w-full bg-black">
-            <video 
-              src={post.videoUrl} 
-              controls 
-              className="w-full h-full object-cover"
-            />
-          </div>
-        ) : post.imageUrl ? (
-          <div className="relative aspect-square w-full">
-            <Image
-              src={post.imageUrl}
-              alt="Post content"
-              fill
-              className="object-cover"
-              priority={priority}
-              unoptimized={post.imageUrl.startsWith('data:')}
-              sizes="(max-width: 768px) 100vw, 600px"
-            />
-          </div>
-        ) : null}
+        <Link href={`/post/${post.id}`}>
+          {post.videoUrl ? (
+            <div className="relative aspect-square w-full bg-black">
+              <video 
+                src={post.videoUrl} 
+                className="w-full h-full object-cover"
+                muted
+                autoPlay
+                loop
+                playsInline
+              />
+            </div>
+          ) : post.imageUrl ? (
+            <div className="relative aspect-square w-full">
+              <Image
+                src={post.imageUrl}
+                alt="Post content"
+                fill
+                className="object-cover"
+                priority={priority}
+                unoptimized={post.imageUrl.startsWith('data:')}
+                sizes="(max-width: 768px) 100vw, 600px"
+              />
+            </div>
+          ) : (
+             <div className="p-6 text-lg font-medium bg-muted/30 italic">
+               "{post.content}"
+             </div>
+          )}
+        </Link>
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-4">
@@ -189,9 +198,9 @@ export function PostCard({ post, priority = false }: PostCardProps) {
               >
                 <Heart className={cn("w-6 h-6", isLiked && "fill-current")} />
               </button>
-              <button className="hover:opacity-60 transition-opacity">
+              <Link href={`/post/${post.id}`} className="hover:opacity-60 transition-opacity">
                 <MessageCircle className="w-6 h-6" />
-              </button>
+              </Link>
               <button onClick={handleShare} className="hover:opacity-60 transition-opacity">
                 <Send className="w-6 h-6" />
               </button>
@@ -210,9 +219,9 @@ export function PostCard({ post, priority = false }: PostCardProps) {
               <span className="font-bold mr-2">{post.userName}</span>
               {post.content}
             </div>
-            <button className="text-xs text-muted-foreground mt-1 hover:underline">
+            <Link href={`/post/${post.id}`} className="text-xs text-muted-foreground mt-1 hover:underline block">
               View all {post.commentsCount || 0} comments
-            </button>
+            </Link>
           </div>
         </div>
       </CardContent>

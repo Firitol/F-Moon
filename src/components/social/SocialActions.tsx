@@ -137,7 +137,6 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
 
   return (
     <div className={cn("flex flex-wrap gap-2 items-center", className)}>
-      {/* Follow Button */}
       <Button 
         variant={isFollowing ? "outline" : "default"} 
         size={isMinimal ? "sm" : "default"}
@@ -148,7 +147,6 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
         {isFollowing ? "Unfollow" : "Follow"}
       </Button>
 
-      {/* Friend Actions (Not for businesses) */}
       {!isBusiness && (
         <>
           {isFriend ? (
@@ -178,17 +176,14 @@ export function SocialActions({ targetUserId, isBusiness = false, className, var
         </>
       )}
 
-      {/* Business Message Button */}
       {isBusiness && (
         <Button 
           variant="outline" 
           size={isMinimal ? "sm" : "default"} 
           className={cn("font-bold", isMinimal && "h-8 px-3 text-[10px]")}
-          asChild
+          onClick={startChat}
         >
-          <Link href={`/business/${targetUserId}`}>
-            <MessageSquare className="w-4 h-4 mr-2" /> Inquire
-          </Link>
+          <MessageSquare className="w-4 h-4 mr-2" /> Inquire
         </Button>
       )}
     </div>
