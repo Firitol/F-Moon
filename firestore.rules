@@ -117,12 +117,15 @@ service cloud.firestore {
     /**
      * @description Business profiles. Owners can manage, admins can moderate.
      * @path /businesses/{businessId}
-     * @allow (get) if active or owner/admin. (list) if query filters for active.
-     * @deny (create) if ownerId doesn't match auth.
+     * @allow (get) if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.ownerId);
+     * @allow (list) if isAdmin() || request.query.status == 'active';
+     * @allow (create) if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+     * @allow (update) if (isExistingOwner(resource.data.ownerId) && isUnchanged('ownerId')) || isAdmin();
+     * @allow (delete) if isAdmin();
      * @principle QAP validation and ownership integrity.
      */
     match /businesses/{businessId} {
-      allow get: if isAdmin() || resource.data.status == 'active' || isOwner(resource.data.ownerId);
+      allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.ownerId);
       allow list: if isAdmin() || request.query.status == 'active';
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if (isExistingOwner(resource.data.ownerId) && isUnchanged('ownerId')) || isAdmin();
@@ -143,12 +146,14 @@ service cloud.firestore {
     /**
      * @description Business subscriptions. Uses denormalized ownerId for auth.
      * @path /business_subscriptions/{subscriptionId}
-     * @allow (get) if business owner or admin.
-     * @deny (list) if not admin.
+     * @allow (get) if resource == null || isOwner(resource.data.ownerId) || isAdmin();
+     * @allow (list) if isAdmin();
+     * @allow (create) if isAdmin() || (isSignedIn() && request.resource.data.ownerId == request.auth.uid);
+     * @allow (update, delete) if isAdmin();
      * @principle Authorization Independence via denormalization.
      */
     match /business_subscriptions/{subscriptionId} {
-      allow get: if isOwner(resource.data.ownerId) || isAdmin();
+      allow get: if resource == null || isOwner(resource.data.ownerId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isAdmin() || (isSignedIn() && request.resource.data.ownerId == request.auth.uid);
       allow update, delete: if isAdmin();
@@ -157,11 +162,13 @@ service cloud.firestore {
     /**
      * @description User-generated posts. Supports public viewing of active posts.
      * @path /posts/{postId}
-     * @allow (list) if filtered by active. (create) if authorId matches auth.
+     * @allow (get) if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.authorId);
+     * @allow (list) if isAdmin() || request.query.status == 'active';
+     * @allow (create) if authorId matches auth.
      * @principle Relational integrity for authorId.
      */
     match /posts/{postId} {
-      allow get: if isAdmin() || resource.data.status == 'active' || isOwner(resource.data.authorId);
+      allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.authorId);
       allow list: if isAdmin() || request.query.status == 'active';
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       allow update: if (isExistingOwner(resource.data.authorId) && isUnchanged('authorId')) || isAdmin();
@@ -171,7 +178,7 @@ service cloud.firestore {
        * @description Comments on posts. Uses denormalized postStatus for public reads.
        */
       match /comments/{commentId} {
-        allow get: if isAdmin() || (resource.data.status == 'active' && resource.data.postStatus == 'active') || isOwner(resource.data.authorId);
+        allow get: if resource == null || isAdmin() || (resource.data.status == 'active' && resource.data.postStatus == 'active') || isOwner(resource.data.authorId);
         allow list: if isAdmin() || (request.query.status == 'active' && request.query.postStatus == 'active');
         allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
         allow update: if (isExistingOwner(resource.data.authorId) && isUnchanged('authorId')) || isAdmin();
@@ -206,11 +213,14 @@ service cloud.firestore {
     /**
      * @description Financial transaction records.
      * @path /payments/{paymentId}
-     * @allow (get) if payer or admin. (list) if owner or admin.
+     * @allow (get) if resource == null || isOwner(resource.data.userId) || isAdmin();
+     * @allow (list) if isAdmin() || (isSignedIn() && request.query.userId == request.auth.uid);
+     * @allow (create) if isSignedIn() && request.resource.data.userId == request.auth.uid;
+     * @allow (update, delete) if isAdmin();
      * @principle Highly restrictive read access for sensitive data.
      */
     match /payments/{paymentId} {
-      allow get: if isOwner(resource.data.userId) || isAdmin();
+      allow get: if resource == null || isOwner(resource.data.userId) || isAdmin();
       allow list: if isAdmin() || (isSignedIn() && request.query.userId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAdmin();
@@ -219,11 +229,15 @@ service cloud.firestore {
     /**
      * @description Moderation reports. Reporters can see their own.
      * @path /reports/{reportId}
-     * @allow (get) if reporter or admin.
+     * @allow (get) if resource == null || isOwner(resource.data.reporterId) || isAdmin();
+     * @allow (list) if isAdmin() || (isSignedIn() && request.query.reporterId == request.auth.uid);
+     * @allow (create) if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+     * @allow (update) if isExistingOwner(resource.data.reporterId) || isAdmin();
+     * @allow (delete) if isAdmin();
      * @principle Secure reporting and administration.
      */
     match /reports/{reportId} {
-      allow get: if isOwner(resource.data.reporterId) || isAdmin();
+      allow get: if resource == null || isOwner(resource.data.reporterId) || isAdmin();
       allow list: if isAdmin() || (isSignedIn() && request.query.reporterId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
       allow update: if isExistingOwner(resource.data.reporterId) || isAdmin();
