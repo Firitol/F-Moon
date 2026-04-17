@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -6,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { type Post } from '@/lib/mock-data';
+import { ProfileHoverCard } from '@/components/profile/ProfileHoverCard';
 
 interface PostCardProps {
   post: Post;
@@ -16,13 +18,17 @@ export function PostCard({ post }: PostCardProps) {
     <Card className="w-full max-w-xl mx-auto border-none shadow-none md:border md:shadow-sm mb-6 rounded-none md:rounded-lg overflow-hidden bg-card">
       <CardHeader className="flex flex-row items-center justify-between p-3">
         <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8 ring-2 ring-primary/10">
-            <AvatarImage src={post.userAvatar} />
-            <AvatarFallback>{post.userName?.[0] || 'U'}</AvatarFallback>
-          </Avatar>
+          <ProfileHoverCard id={post.authorId} type="user" initialData={{ userName: post.userName, avatar: post.userAvatar }}>
+            <Avatar className="h-8 w-8 ring-2 ring-primary/10">
+              <AvatarImage src={post.userAvatar} />
+              <AvatarFallback>{post.userName?.[0] || 'U'}</AvatarFallback>
+            </Avatar>
+          </ProfileHoverCard>
           <div className="flex flex-col">
             <div className="flex items-center gap-1">
-              <span className="text-sm font-semibold hover:underline cursor-pointer">{post.userName}</span>
+              <ProfileHoverCard id={post.authorId} type="user" initialData={{ userName: post.userName, avatar: post.userAvatar }}>
+                <span className="text-sm font-semibold hover:underline cursor-pointer">{post.userName}</span>
+              </ProfileHoverCard>
               {post.isPromoted && (
                 <BadgeCheck className="w-4 h-4 text-primary fill-primary/20" />
               )}
@@ -59,7 +65,9 @@ export function PostCard({ post }: PostCardProps) {
           <div className="space-y-1">
             <p className="text-sm font-bold">{(post.likesCount || 0).toLocaleString()} likes</p>
             <p className="text-sm leading-relaxed">
-              <span className="font-bold mr-2">{post.userName}</span>
+              <ProfileHoverCard id={post.authorId} type="user" initialData={{ userName: post.userName, avatar: post.userAvatar }}>
+                <span className="font-bold mr-2">{post.userName}</span>
+              </ProfileHoverCard>
               {post.content}
             </p>
             <button className="text-sm text-muted-foreground mt-1">

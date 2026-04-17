@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { PromotionGenerator } from '@/components/business/PromotionGenerator';
 import { Badge } from '@/components/ui/badge';
 import { BadgeCheck } from 'lucide-react';
+import { ProfileHoverCard } from '@/components/profile/ProfileHoverCard';
 
 export default function Home() {
   return (
@@ -22,12 +23,14 @@ export default function Home() {
           <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide">
             {MOCK_USERS.map((user) => (
               <div key={user.id} className="flex flex-col items-center gap-1 min-w-[72px]">
-                <div className="p-[2px] rounded-full instagram-gradient">
-                  <Avatar className="h-16 w-16 ring-2 ring-background">
-                    <AvatarImage src={user.avatar} />
-                    <AvatarFallback>{user.name[0]}</AvatarFallback>
-                  </Avatar>
-                </div>
+                <ProfileHoverCard id={user.id} type="user" initialData={user}>
+                  <div className="p-[2px] rounded-full instagram-gradient">
+                    <Avatar className="h-16 w-16 ring-2 ring-background">
+                      <AvatarImage src={user.avatar} />
+                      <AvatarFallback>{user.name[0]}</AvatarFallback>
+                    </Avatar>
+                  </div>
+                </ProfileHoverCard>
                 <span className="text-xs truncate w-full text-center">{user.name.split(' ')[0]}</span>
               </div>
             ))}
@@ -44,10 +47,12 @@ export default function Home() {
         <aside className="hidden lg:block w-80 space-y-6 sticky top-20 h-fit">
           <Card className="border-none shadow-sm bg-card">
             <CardContent className="p-4 flex items-center gap-4">
-              <Avatar className="h-14 w-14 ring-2 ring-primary/20">
-                <AvatarImage src={MOCK_USERS[0].avatar} />
-                <AvatarFallback>AB</AvatarFallback>
-              </Avatar>
+              <ProfileHoverCard id={MOCK_USERS[0].id} type="user" initialData={MOCK_USERS[0]}>
+                <Avatar className="h-14 w-14 ring-2 ring-primary/20">
+                  <AvatarImage src={MOCK_USERS[0].avatar} />
+                  <AvatarFallback>AB</AvatarFallback>
+                </Avatar>
+              </ProfileHoverCard>
               <div>
                 <p className="font-bold text-sm">Abebe Bikila</p>
                 <p className="text-xs text-muted-foreground">Ethiopian Explorer</p>
@@ -64,14 +69,18 @@ export default function Home() {
             
             {MOCK_BUSINESSES.map(biz => (
               <div key={biz.id} className="flex items-center gap-3 px-1">
-                <Avatar className="h-10 w-10 ring-1 ring-border">
-                  <AvatarFallback className="bg-secondary text-primary font-bold">
-                    {biz.name[0]}
-                  </AvatarFallback>
-                </Avatar>
+                <ProfileHoverCard id={biz.id} type="business" initialData={biz}>
+                  <Avatar className="h-10 w-10 ring-1 ring-border">
+                    <AvatarFallback className="bg-secondary text-primary font-bold">
+                      {biz.name[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                </ProfileHoverCard>
                 <div className="flex-1">
                   <div className="flex items-center gap-1">
-                    <p className="text-sm font-semibold">{biz.name}</p>
+                    <ProfileHoverCard id={biz.id} type="business" initialData={biz}>
+                      <p className="text-sm font-semibold hover:underline cursor-pointer">{biz.name}</p>
+                    </ProfileHoverCard>
                     {biz.isVerified && <BadgeCheck className="w-3 h-3 text-primary" />}
                   </div>
                   <p className="text-xs text-muted-foreground">{biz.category}</p>
