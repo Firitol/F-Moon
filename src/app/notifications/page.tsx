@@ -31,7 +31,6 @@ export default function NotificationsPage() {
 
   const { data: notifications, isLoading } = useCollection(notificationsQuery);
 
-  // Mark all unread notifications as read when viewing the page
   useEffect(() => {
     if (notifications && db && user) {
       notifications.forEach(notif => {

@@ -33,6 +33,54 @@
       },
       "required": ["id", "userId"]
     },
+    "Business": {
+      "title": "Business",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "locationDescription": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "isPromoted": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["active", "pending", "suspended"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Post": {
+      "title": "Post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userAvatar": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "likesCount": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Comment": {
+      "title": "Comment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "postId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorAvatar": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
     "Follow": {
       "title": "Follow",
       "type": "object",
@@ -50,6 +98,7 @@
         "id": { "type": "string" },
         "senderId": { "type": "string" },
         "receiverId": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
         "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
         "createdAt": { "type": "string", "format": "date-time" }
       }
@@ -100,6 +149,19 @@
         "read": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "Payment": {
+      "title": "Payment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "status": { "type": "string" },
+        "type": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -108,11 +170,15 @@
   "firestore": {
     "/users/{userId}": { "schema": "User", "description": "Private user account data." },
     "/public_user_profiles/{userId}": { "schema": "UserProfile", "description": "Public user profile info." },
+    "/businesses/{bizId}": { "schema": "Business", "description": "Business listings." },
+    "/posts/{postId}": { "schema": "Post", "description": "Community posts." },
+    "/comments/{commentId}": { "schema": "Comment", "description": "Post comments." },
     "/follows/{followId}": { "schema": "Follow", "description": "Following relationships." },
     "/friend_requests/{requestId}": { "schema": "FriendRequest", "description": "Friendship requests." },
     "/friendships/{friendshipId}": { "schema": "Friendship", "description": "Mutual friendships." },
     "/conversations/{conversationId}": { "schema": "Conversation", "description": "Chat conversations." },
     "/messages/{messageId}": { "schema": "Message", "description": "Individual chat messages." },
-    "/notifications/{notifId}": { "schema": "Notification", "description": "User notifications." }
+    "/notifications/{notifId}": { "schema": "Notification", "description": "User notifications." },
+    "/payments/{payId}": { "schema": "Payment", "description": "Transaction logs." }
   }
 }

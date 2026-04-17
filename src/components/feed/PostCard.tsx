@@ -1,14 +1,23 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ProfileHoverCard } from '@/components/profile/ProfileHoverCard';
-import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { 
+  useUser, 
+  useFirestore, 
+  useDoc, 
+  useMemoFirebase, 
+  setDocumentNonBlocking, 
+  deleteDocumentNonBlocking, 
+  updateDocumentNonBlocking, 
+  addDocumentNonBlocking 
+} from '@/firebase';
 import { doc, increment, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -23,6 +32,11 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Check if user liked this post
   const likeRef = useMemoFirebase(() => {
@@ -107,7 +121,6 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   const handleShare = async () => {
     const url = `${window.location.origin}/post/${post.id}`;
     
-    // Check if navigator.share is available
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
@@ -115,20 +128,14 @@ export function PostCard({ post, priority = false }: PostCardProps) {
           text: post.content,
           url: url,
         });
-        return; 
       } catch (err) {
-        if ((err as Error).name === 'AbortError') return;
-      }
-    }
-    
-    // Fallback to clipboard
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(url);
+        // Fallback to clipboard if share is aborted or blocked
+        navigator.clipboard.writeText(url);
         toast({ title: "Link Copied", description: "Post link copied to your clipboard!" });
       }
-    } catch (err) {
-      console.warn('Sharing failed', err);
+    } else {
+      navigator.clipboard.writeText(url);
+      toast({ title: "Link Copied", description: "Post link copied to your clipboard!" });
     }
   };
 
@@ -152,7 +159,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
               )}
             </div>
             <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
-              {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}
+              {mounted && post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}
             </span>
           </div>
         </div>

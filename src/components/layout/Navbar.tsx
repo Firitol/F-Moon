@@ -31,7 +31,7 @@ export function Navbar() {
     return query(collection(db, 'notifications'), where('recipientId', '==', user.uid), where('read', '==', false));
   }, [db, user]);
   const { data: unreadNotifs } = useCollection(unreadNotifsQuery);
-  const hasUnreadNotifs = (unreadNotifs?.length || 0) > 0;
+  const hasUnreadNotifs = mounted && (unreadNotifs?.length || 0) > 0;
 
   // Real-time unread messages check
   const unreadMessagesQuery = useMemoFirebase(() => {
@@ -39,7 +39,7 @@ export function Navbar() {
     return query(collection(db, 'messages'), where('receiverId', '==', user.uid), where('isRead', '==', false));
   }, [db, user]);
   const { data: unreadMessages } = useCollection(unreadMessagesQuery);
-  const hasUnreadMessages = (unreadMessages?.length || 0) > 0;
+  const hasUnreadMessages = mounted && (unreadMessages?.length || 0) > 0;
 
   const handleLogout = async () => {
     try {
@@ -94,7 +94,7 @@ export function Navbar() {
             title="Messages"
           >
             <MessageSquare className="w-6 h-6" />
-            {mounted && hasUnreadMessages && (
+            {hasUnreadMessages && (
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full border-2 border-background animate-pulse" />
             )}
           </Link>
@@ -107,7 +107,7 @@ export function Navbar() {
             title="Notifications"
           >
             <Bell className="w-6 h-6" />
-            {mounted && hasUnreadNotifs && (
+            {hasUnreadNotifs && (
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full border-2 border-background animate-pulse" />
             )}
           </Link>
@@ -145,7 +145,7 @@ export function Navbar() {
             <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
               <MessageSquare className="w-5 h-5" />
             </Button>
-            {mounted && hasUnreadMessages && (
+            {hasUnreadMessages && (
               <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full border-2 border-background animate-pulse" />
             )}
           </Link>
@@ -167,7 +167,7 @@ export function Navbar() {
         </Link>
         <Link href="/notifications" className="p-2 text-muted-foreground active:text-primary transition-colors relative">
           <Bell className="w-6 h-6" />
-          {mounted && hasUnreadNotifs && (
+          {hasUnreadNotifs && (
             <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-background animate-pulse" />
           )}
         </Link>

@@ -31,9 +31,6 @@ import { Send, MessageSquare, ShieldAlert, ChevronLeft, Loader2 } from 'lucide-r
 import { formatDistanceToNow } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
 
-/**
- * Helper component to render a conversation item with partner details
- */
 function ConversationItem({ conversation, currentUser, activePartnerId, onSelect }: { 
   conversation: any, 
   currentUser: any, 
@@ -42,10 +39,13 @@ function ConversationItem({ conversation, currentUser, activePartnerId, onSelect
 }) {
   const db = useFirestore();
   const partnerId = conversation.participants.find((p: string) => p !== currentUser.uid);
-  
-  // Fetch partner details (user or business)
   const [partner, setPartner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     async function fetchPartner() {
@@ -90,7 +90,7 @@ function ConversationItem({ conversation, currentUser, activePartnerId, onSelect
             {partner?.name || 'User'}
           </p>
           <span className="text-[8px] text-muted-foreground whitespace-nowrap">
-            {conversation.lastMessageAt ? formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: false }) : ''}
+            {mounted && conversation.lastMessageAt ? formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: false }) : ''}
           </span>
         </div>
         <p className="text-[10px] text-muted-foreground truncate">
@@ -118,7 +118,6 @@ function MessagesContent() {
     setMounted(true);
   }, []);
 
-  // Handle auto-selection from URL
   useEffect(() => {
     if (partnerParam && user) {
       const convId = [user.uid, partnerParam].sort().join('_');
@@ -127,7 +126,6 @@ function MessagesContent() {
     }
   }, [partnerParam, user]);
 
-  // Query conversations - Requires Firestore Index
   const convQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -151,7 +149,6 @@ function MessagesContent() {
 
   const { data: messages } = useCollection(messageQuery);
 
-  // Mark incoming messages as read
   useEffect(() => {
     if (messages && user && db) {
       messages.forEach(msg => {
@@ -162,7 +159,6 @@ function MessagesContent() {
     }
   }, [messages, user, db]);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     if (scrollRef.current) {
       const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
@@ -172,7 +168,6 @@ function MessagesContent() {
     }
   }, [messages]);
 
-  // Fetch active partner info
   useEffect(() => {
     const fetchPartner = async () => {
       if (!db || !activePartnerId) return;
@@ -196,7 +191,6 @@ function MessagesContent() {
     const timestamp = new Date().toISOString();
     setNewMessage('');
 
-    // 1. Update/Create conversation metadata (Non-blocking)
     const convRef = doc(db, 'conversations', activeConversationId);
     setDocumentNonBlocking(convRef, {
       lastMessage: messageContent,
@@ -205,7 +199,6 @@ function MessagesContent() {
       updatedAt: timestamp
     }, { merge: true });
 
-    // 2. Add message doc (Non-blocking)
     addDocumentNonBlocking(collection(db, 'messages'), {
       conversationId: activeConversationId,
       senderId: user.uid,
@@ -215,7 +208,6 @@ function MessagesContent() {
       isRead: false
     });
 
-    // 3. Notify partner (Non-blocking)
     addDocumentNonBlocking(collection(db, 'notifications'), {
       recipientId: activePartnerId,
       actorId: user.uid,
@@ -251,8 +243,6 @@ function MessagesContent() {
     <div className="min-h-screen pb-20 md:pt-16 bg-secondary/10">
       <Navbar />
       <main className="max-w-6xl mx-auto h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] flex bg-card border rounded-none md:rounded-xl overflow-hidden shadow-xl mt-0 md:mt-4">
-        
-        {/* Sidebar */}
         <aside className={`w-full md:w-80 border-r flex flex-col ${activeConversationId && mounted && window.innerWidth < 768 ? 'hidden' : 'flex'}`}>
           <div className="p-4 border-b bg-muted/30">
             <h2 className="font-headline font-bold text-lg">Messages</h2>
@@ -290,7 +280,6 @@ function MessagesContent() {
           </ScrollArea>
         </aside>
 
-        {/* Chat Window */}
         <section className={`flex-1 flex flex-col bg-background ${!activeConversationId ? 'hidden md:flex items-center justify-center' : 'flex'}`}>
           {!activeConversationId ? (
             <div className="text-center space-y-4 opacity-40">
@@ -338,18 +327,6 @@ function MessagesContent() {
                       </div>
                     );
                   })}
-                  {!messages?.length && activePartner && (
-                    <div className="text-center py-20 space-y-4 opacity-60">
-                      <Avatar className="h-20 w-20 mx-auto border-4 border-background shadow-xl">
-                        <AvatarImage src={activePartner.profilePictureUrl || activePartner.imageUrl} />
-                        <AvatarFallback className="text-2xl">{activePartner.name?.[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="space-y-1">
-                        <p className="font-headline font-bold">Start your conversation with {activePartner.name}</p>
-                        <p className="text-xs text-muted-foreground italic">Your messages are private.</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </ScrollArea>
 
