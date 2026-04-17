@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -106,7 +107,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   const handleShare = async () => {
     const url = `${window.location.origin}/post/${post.id}`;
     
-    // Check if navigator.share is available and allowed
+    // Check if navigator.share is available
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
@@ -114,9 +115,8 @@ export function PostCard({ post, priority = false }: PostCardProps) {
           text: post.content,
           url: url,
         });
-        return; // Successfully shared via system dialog
+        return; 
       } catch (err) {
-        // If user cancelled, just stop. Otherwise, fallback to clipboard.
         if ((err as Error).name === 'AbortError') return;
       }
     }
@@ -128,8 +128,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
         toast({ title: "Link Copied", description: "Post link copied to your clipboard!" });
       }
     } catch (err) {
-      // In cases where clipboard is also blocked (e.g. non-secure contexts)
-      console.warn('Sharing failed completely', err);
+      console.warn('Sharing failed', err);
     }
   };
 

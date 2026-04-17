@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useParams } from 'next/navigation';
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, where, orderBy, increment } from 'firebase/firestore';
+import { doc, collection, query, where, increment } from 'firebase/firestore';
 import { Navbar } from '@/components/layout/Navbar';
 import { PostCard } from '@/components/feed/PostCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,12 +11,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Send, MessageSquare } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function PostDetailPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params.id as string;
   const { user: currentUser } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -29,7 +31,7 @@ export default function PostDetailPage() {
 
   const postRef = useMemoFirebase(() => {
     if (!db || !id) return null;
-    return doc(db, 'posts', id as string);
+    return doc(db, 'posts', id);
   }, [db, id]);
 
   const { data: post, isLoading: isPostLoading } = useDoc(postRef);
@@ -38,35 +40,53 @@ export default function PostDetailPage() {
     if (!db || !id) return null;
     return query(
       collection(db, 'comments'),
-      where('postId', '==', id),
-      orderBy('createdAt', 'desc')
+      where('postId', '==', id)
     );
   }, [db, id]);
 
-  const { data: comments, isLoading: isCommentsLoading } = useCollection(commentsQuery);
+  const { data: rawComments, isLoading: isCommentsLoading } = useCollection(commentsQuery);
 
-  const handleAddComment = (e: React.FormEvent) => {
+  // Sort comments client-side to avoid index requirement for now
+  const comments = useMemo(() => {
+    if (!rawComments) return [];
+    return [...rawComments].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [rawComments]);
+
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !db || !id || !newComment.trim()) return;
+    if (!currentUser) {
+      toast({ title: "Auth Required", description: "Please sign in to comment.", variant: "destructive" });
+      return;
+    }
+    if (!db || !id || !newComment.trim()) return;
 
     setIsSubmitting(true);
     
-    addDocumentNonBlocking(collection(db, 'comments'), {
-      postId: id,
-      authorId: currentUser.uid,
-      authorName: currentUser.displayName || 'Anonymous',
-      authorAvatar: currentUser.photoURL || '',
-      content: newComment.trim(),
-      createdAt: new Date().toISOString()
-    });
+    try {
+      addDocumentNonBlocking(collection(db, 'comments'), {
+        postId: id,
+        authorId: currentUser.uid,
+        authorName: currentUser.displayName || 'Anonymous',
+        authorAvatar: currentUser.photoURL || '',
+        content: newComment.trim(),
+        createdAt: new Date().toISOString()
+      });
 
-    updateDocumentNonBlocking(doc(db, 'posts', id as string), {
-      commentsCount: increment(1)
-    });
+      updateDocumentNonBlocking(doc(db, 'posts', id), {
+        commentsCount: increment(1)
+      });
 
-    setNewComment('');
-    setIsSubmitting(false);
-    toast({ title: "Comment added!" });
+      setNewComment('');
+      toast({ title: "Comment added!" });
+    } catch (e: any) {
+      toast({ title: "Error", description: "Failed to add comment.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isPostLoading) return <div className="p-20 text-center animate-pulse">Loading Post...</div>;
@@ -104,7 +124,7 @@ export default function PostDetailPage() {
                <div className="space-y-4">
                  {[1,2,3].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />)}
                </div>
-            ) : comments?.length ? (
+            ) : comments.length ? (
               comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3">
                   <Avatar className="h-8 w-8 shrink-0">
