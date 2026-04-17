@@ -1,1 +1,6 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/suggest-post-caption.ts';
+import '@/ai/flows/generate-promotional-text-flow.ts';
+import '@/ai/flows/generate-business-description-flow.ts';

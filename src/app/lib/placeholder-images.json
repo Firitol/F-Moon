@@ -1,0 +1,47 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "ethiopian-coffee",
+      "description": "Traditional Ethiopian coffee ceremony",
+      "imageUrl": "https://picsum.photos/seed/coffee/600/400",
+      "imageHint": "Ethiopian coffee"
+    },
+    {
+      "id": "addis-ababa",
+      "description": "Skyline of Addis Ababa",
+      "imageUrl": "https://picsum.photos/seed/addis/600/400",
+      "imageHint": "Addis Ababa"
+    },
+    {
+      "id": "lalibela",
+      "description": "Rock-hewn churches of Lalibela",
+      "imageUrl": "https://picsum.photos/seed/lalibela/600/400",
+      "imageHint": "Lalibela church"
+    },
+    {
+      "id": "ethiopian-food",
+      "description": "Delicious Injera with various stews",
+      "imageUrl": "https://picsum.photos/seed/food/600/400",
+      "imageHint": "Ethiopian food"
+    },
+    {
+      "id": "business-owner",
+      "description": "Local entrepreneur in their shop",
+      "imageUrl": "https://picsum.photos/seed/entrepreneur/400/400",
+      "imageHint": "Local shop"
+    },
+    {
+      "id": "user-avatar-1",
+      "description": "User profile avatar",
+      "imageUrl": "https://picsum.photos/seed/user1/200/200",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "user-avatar-2",
+      "description": "User profile avatar 2",
+      "imageUrl": "https://picsum.photos/seed/user2/200/200",
+      "imageHint": "person portrait"
+    }
+  ]
+}
