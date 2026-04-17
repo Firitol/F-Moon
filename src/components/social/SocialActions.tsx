@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { 
   collection, 
@@ -11,20 +10,22 @@ import {
   deleteDoc, 
   doc, 
   getDocs,
-  updateDoc,
-  serverTimestamp 
+  updateDoc
 } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { UserPlus, UserCheck, UserX, UserMinus, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 interface SocialActionsProps {
   targetUserId: string;
   isBusiness?: boolean;
+  className?: string;
+  variant?: 'default' | 'minimal';
 }
 
-export function SocialActions({ targetUserId, isBusiness = false }: SocialActionsProps) {
+export function SocialActions({ targetUserId, isBusiness = false, className, variant = 'default' }: SocialActionsProps) {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -46,8 +47,8 @@ export function SocialActions({ targetUserId, isBusiness = false }: SocialAction
   }, [db, user, targetUserId]);
   const { data: requests } = useCollection(requestQuery);
   
-  const outgoingRequest = requests?.find(r => r.senderId === user?.uid && r.receiverId === targetUserId);
-  const incomingRequest = requests?.find(r => r.receiverId === user?.uid && r.senderId === targetUserId);
+  const outgoingRequest = requests?.find(r => r.senderId === user?.uid && r.receiverId === targetUserId && r.status === 'pending');
+  const incomingRequest = requests?.find(r => r.receiverId === user?.uid && r.senderId === targetUserId && r.status === 'pending');
 
   // Friendship State
   const friendshipQuery = useMemoFirebase(() => {
@@ -57,6 +58,20 @@ export function SocialActions({ targetUserId, isBusiness = false }: SocialAction
   const { data: friendships } = useCollection(friendshipQuery);
   const isFriend = friendships?.some(f => f.participants.includes(targetUserId));
 
+  const createNotification = async (type: 'follow' | 'friend_request' | 'friend_accept', message: string) => {
+    if (!db || !user) return;
+    addDoc(collection(db, 'notifications'), {
+      recipientId: targetUserId,
+      actorId: user.uid,
+      actorName: user.displayName || 'Someone',
+      actorAvatar: user.photoURL || '',
+      type,
+      message,
+      read: false,
+      createdAt: new Date().toISOString()
+    });
+  };
+
   const handleFollow = async () => {
     if (!db || !user) return;
     if (isFollowing) {
@@ -64,11 +79,12 @@ export function SocialActions({ targetUserId, isBusiness = false }: SocialAction
       snap.forEach(d => deleteDoc(d.ref));
       toast({ title: "Unfollowed" });
     } else {
-      await addDoc(collection(db, 'follows'), {
+      addDoc(collection(db, 'follows'), {
         followerId: user.uid,
         followingId: targetUserId,
         createdAt: new Date().toISOString()
       });
+      createNotification('follow', 'started following you');
       toast({ title: "Following" });
     }
   };
@@ -76,16 +92,17 @@ export function SocialActions({ targetUserId, isBusiness = false }: SocialAction
   const handleFriendRequest = async () => {
     if (!db || !user) return;
     if (outgoingRequest) {
-      await deleteDoc(doc(db, 'friend_requests', outgoingRequest.id));
+      deleteDoc(doc(db, 'friend_requests', outgoingRequest.id));
       toast({ title: "Request Cancelled" });
     } else {
-      await addDoc(collection(db, 'friend_requests'), {
+      addDoc(collection(db, 'friend_requests'), {
         senderId: user.uid,
         receiverId: targetUserId,
         participants: [user.uid, targetUserId],
         status: 'pending',
         createdAt: new Date().toISOString()
       });
+      createNotification('friend_request', 'sent you a friend request');
       toast({ title: "Friend Request Sent" });
     }
   };
@@ -93,27 +110,28 @@ export function SocialActions({ targetUserId, isBusiness = false }: SocialAction
   const acceptRequest = async () => {
     if (!db || !user || !incomingRequest) return;
     
-    // 1. Create Friendship
-    await addDoc(collection(db, 'friendships'), {
+    addDoc(collection(db, 'friendships'), {
       participants: [user.uid, targetUserId],
       createdAt: new Date().toISOString()
     });
 
-    // 2. Update Request Status
-    await updateDoc(doc(db, 'friend_requests', incomingRequest.id), { status: 'accepted' });
+    updateDoc(doc(db, 'friend_requests', incomingRequest.id), { status: 'accepted' });
+    createNotification('friend_accept', 'accepted your friend request');
     toast({ title: "Friendship Established!" });
   };
 
   if (!user || user.uid === targetUserId) return null;
 
+  const isMinimal = variant === 'minimal';
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {/* Follow Button (Available for all) */}
+    <div className={cn("flex flex-wrap gap-2 items-center", className)}>
+      {/* Follow Button */}
       <Button 
         variant={isFollowing ? "outline" : "default"} 
-        size="sm" 
+        size={isMinimal ? "sm" : "default"}
         onClick={handleFollow}
-        className="font-bold"
+        className={cn("font-bold", isMinimal && "h-8 px-3 text-[10px]")}
       >
         {isFollowing ? <UserMinus className="w-4 h-4 mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
         {isFollowing ? "Unfollow" : "Follow"}
@@ -123,24 +141,24 @@ export function SocialActions({ targetUserId, isBusiness = false }: SocialAction
       {!isBusiness && (
         <>
           {isFriend ? (
-            <Button variant="secondary" size="sm" className="font-bold" asChild>
+            <Button variant="secondary" size={isMinimal ? "sm" : "default"} className={cn("font-bold", isMinimal && "h-8 px-3 text-[10px]")} asChild>
               <Link href="/messages">
                 <MessageSquare className="w-4 h-4 mr-2" /> Chat
               </Link>
             </Button>
           ) : incomingRequest ? (
-            <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 font-bold" onClick={acceptRequest}>
-              <UserCheck className="w-4 h-4 mr-2" /> Accept Friend
+            <Button variant="default" size={isMinimal ? "sm" : "default"} className={cn("bg-green-600 hover:bg-green-700 font-bold", isMinimal && "h-8 px-3 text-[10px]")} onClick={acceptRequest}>
+              <UserCheck className="w-4 h-4 mr-2" /> Accept
             </Button>
           ) : (
             <Button 
               variant={outgoingRequest ? "outline" : "secondary"} 
-              size="sm" 
+              size={isMinimal ? "sm" : "default"} 
               onClick={handleFriendRequest}
-              className="font-bold"
+              className={cn("font-bold", isMinimal && "h-8 px-3 text-[10px]")}
             >
               {outgoingRequest ? <UserX className="w-4 h-4 mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
-              {outgoingRequest ? "Cancel Request" : "Add Friend"}
+              {outgoingRequest ? "Pending" : "Add Friend"}
             </Button>
           )}
         </>

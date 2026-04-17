@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Phone, MessageSquare, BadgeCheck, Star, Calendar, Globe } from 'lucide-react';
 import Image from 'next/image';
+import { SocialActions } from '@/components/social/SocialActions';
 
 export default function BusinessProfilePage() {
   const { id } = useParams();
@@ -78,7 +79,7 @@ export default function BusinessProfilePage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button className="bg-primary font-bold px-8">Follow</Button>
+              <SocialActions targetUserId={business.ownerId || business.id} isBusiness={true} />
               <Button variant="outline" className="font-bold">
                 <MessageSquare className="w-4 h-4 mr-2" /> Message
               </Button>
@@ -88,7 +89,6 @@ export default function BusinessProfilePage() {
       </div>
 
       <main className="max-w-5xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Info */}
         <div className="lg:col-span-2 space-y-8">
           <section className="space-y-4">
             <h2 className="text-2xl font-headline font-bold">About</h2>
@@ -125,7 +125,6 @@ export default function BusinessProfilePage() {
           </section>
         </div>
 
-        {/* Right Column: Sidebar */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -148,15 +147,6 @@ export default function BusinessProfilePage() {
                 <Calendar className="w-5 h-5 text-primary shrink-0" />
                 <span>Open: 8:00 AM - 8:00 PM</span>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-accent/5 border-accent/20">
-            <CardHeader>
-              <CardTitle className="text-lg text-accent">Specials</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm font-medium">10% discount for F-Moon followers! Show your profile on checkout.</p>
             </CardContent>
           </Card>
         </div>

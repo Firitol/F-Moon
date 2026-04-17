@@ -8,10 +8,11 @@ import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { PromotionGenerator } from '@/components/business/PromotionGenerator';
-import { BadgeCheck, Sparkles, UserPlus } from 'lucide-react';
+import { BadgeCheck, Sparkles } from 'lucide-react';
 import { ProfileHoverCard } from '@/components/profile/ProfileHoverCard';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { SocialActions } from '@/components/social/SocialActions';
 
 export default function Home() {
   const { user } = useUser();
@@ -38,7 +39,6 @@ export default function Home() {
       <main className="max-w-screen-xl mx-auto flex justify-center gap-8 p-4">
         {/* Main Feed */}
         <div className="w-full max-w-xl">
-          {/* Welcome Card for new users */}
           {!posts?.length && !isPostsLoading && (
             <Card className="mb-6 p-12 text-center border-dashed border-2">
               <Sparkles className="w-12 h-12 mx-auto text-primary mb-4" />
@@ -103,9 +103,7 @@ export default function Home() {
                   </div>
                   <p className="text-[10px] text-muted-foreground uppercase font-bold">{biz.category}</p>
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-primary" asChild>
-                  <Link href={`/business/${biz.id}`}>Follow</Link>
-                </Button>
+                <SocialActions targetUserId={biz.ownerId || biz.id} isBusiness={true} variant="minimal" />
               </div>
             ))}
           </div>

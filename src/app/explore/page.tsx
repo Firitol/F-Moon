@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -19,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from 'next/link';
+import { SocialActions } from '@/components/social/SocialActions';
 
 export default function ExplorePage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,8 +30,7 @@ export default function ExplorePage() {
 
   const businessQuery = useMemoFirebase(() => {
     if (!db) return null;
-    let baseQuery = collection(db, 'businesses');
-    return query(baseQuery, where('status', '==', 'active'), limit(50));
+    return query(collection(db, 'businesses'), where('status', '==', 'active'), limit(50));
   }, [db]);
 
   const { data: businesses, isLoading } = useCollection(businessQuery);
@@ -68,7 +69,7 @@ export default function ExplorePage() {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-full hover:bg-secondary transition-colors">
+                <Button variant="outline" size="icon" className="rounded-full">
                   <SlidersHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -84,14 +85,12 @@ export default function ExplorePage() {
           </div>
         </div>
         
-        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
           {['All', 'Hotel', 'Restaurant', 'Shop', 'Tourism', 'Service'].map((cat) => (
             <Badge 
               key={cat} 
               variant={category === cat ? 'default' : 'secondary'}
-              className={`px-6 py-1.5 cursor-pointer whitespace-nowrap rounded-full transition-all hover:scale-105 active:scale-95 ${
-                category === cat ? 'shadow-md' : 'hover:bg-muted'
-              }`}
+              className="px-6 py-1.5 cursor-pointer whitespace-nowrap rounded-full"
               onClick={() => setCategory(cat)}
             >
               {cat}
@@ -106,54 +105,53 @@ export default function ExplorePage() {
             ))
           ) : filteredBusinesses.length ? (
             filteredBusinesses.map((biz) => (
-              <Link href={`/business/${biz.id}`} key={biz.id} className="block group">
-                <Card className="hover:shadow-xl transition-all duration-300 border-none shadow-sm overflow-hidden bg-card hover:translate-y-[-2px] hover:ring-1 hover:ring-primary/10">
-                  <CardContent className="p-0">
-                    <div className="flex flex-col md:flex-row">
-                      <div className="w-full md:w-48 h-48 bg-primary/10 flex items-center justify-center text-primary text-5xl font-headline font-bold relative transition-transform group-hover:scale-[1.02]">
-                        {biz.name[0]}
-                        {biz.isVerified && (
-                          <div className="absolute top-2 right-2 bg-background p-1 rounded-full shadow-sm animate-in zoom-in-50 duration-500">
-                            <BadgeCheck className="w-6 h-6 text-primary" />
-                          </div>
-                        )}
+              <Card key={biz.id} className="hover:shadow-xl transition-all duration-300 border-none shadow-sm overflow-hidden bg-card group">
+                <CardContent className="p-0">
+                  <div className="flex flex-col md:flex-row">
+                    <Link href={`/business/${biz.id}`} className="w-full md:w-48 h-48 bg-primary/10 flex items-center justify-center text-primary text-5xl font-headline font-bold relative">
+                      {biz.name[0]}
+                      {biz.isVerified && (
+                        <div className="absolute top-2 right-2 bg-background p-1 rounded-full shadow-sm">
+                          <BadgeCheck className="w-6 h-6 text-primary" />
+                        </div>
+                      )}
+                    </Link>
+                    <div className="flex-1 p-6 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <Link href={`/business/${biz.id}`}>
+                          <h2 className="text-xl font-headline font-bold hover:text-primary transition-colors">{biz.name}</h2>
+                          <Badge variant="outline" className="text-xs">{biz.category}</Badge>
+                        </Link>
+                        <Link href={`/business/${biz.id}`}>
+                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                        </Link>
                       </div>
-                      <div className="flex-1 p-6 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h2 className="text-xl font-headline font-bold group-hover:text-primary transition-colors">{biz.name}</h2>
-                            </div>
-                            <Badge variant="outline" className="text-xs group-hover:border-primary/50 group-hover:text-primary transition-all">{biz.category}</Badge>
-                          </div>
-                          <ChevronRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                      
+                      <p className="text-sm text-muted-foreground line-clamp-2">{biz.description}</p>
+                      
+                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {biz.locationDescription || 'Location TBD'}
                         </div>
-                        
-                        <p className="text-sm text-muted-foreground line-clamp-2">{biz.description}</p>
-                        
-                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1.5 bg-secondary/50 px-2 py-1 rounded transition-colors group-hover:bg-primary/5">
-                            <MapPin className="w-3.5 h-3.5 group-hover:text-primary" />
-                            {biz.locationDescription || 'Location TBD'}
-                          </div>
-                          <div className="flex items-center gap-1.5 bg-secondary/50 px-2 py-1 rounded transition-colors group-hover:bg-primary/5">
-                            <Phone className="w-3.5 h-3.5 group-hover:text-primary" />
-                            {biz.contactPhone}
-                          </div>
+                        <div className="flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5" />
+                          {biz.contactPhone}
                         </div>
-                        
-                        <div className="flex gap-3 pt-2">
-                          <Button className="flex-1 bg-primary hover:scale-[1.02] transition-transform">Follow</Button>
-                          <Button variant="outline" className="flex-1 hover:bg-secondary transition-colors">
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Contact
-                          </Button>
-                        </div>
+                      </div>
+                      
+                      <div className="flex gap-3 pt-2">
+                        <SocialActions targetUserId={biz.ownerId || biz.id} isBusiness={true} className="flex-1" />
+                        <Button variant="outline" className="flex-1" asChild>
+                          <Link href={`/business/${biz.id}`}>
+                            View Profile
+                          </Link>
+                        </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                </CardContent>
+              </Card>
             ))
           ) : (
             <div className="text-center py-20 bg-muted/20 rounded-xl border-2 border-dashed">
