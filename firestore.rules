@@ -1,12 +1,12 @@
+
 rules_version = '2';
 
 /**
- * FIRESTORE SECURITY RULES - GLOBAL UNRESTRICTED ACCESS
+ * FIRESTORE SECURITY RULES - PUBLIC ACCESS MODE
  * 
- * EMERGENCY RESET: This configuration removes ALL security checks.
- * Every user (authenticated or guest) has full read/write access to every document.
- *
- * DEPLOYMENT_FORCE_ID: 2024_05_23_FORCE_PUBLIC_ACCESS_FINAL_OVERRIDE_V4
+ * This configuration allows open read and write access for all users during development.
+ * 
+ * DEPLOYMENT_FORCE_ID: 2024_05_23_FORCE_PUBLIC_ACCESS_V99_SOCIAL
  */
 
 service cloud.firestore {

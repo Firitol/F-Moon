@@ -8,8 +8,9 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Grid, UserPlus, MessageSquare, ShieldAlert, PlayCircle } from 'lucide-react';
+import { Grid, ShieldAlert, PlayCircle, MapPin, Calendar, Heart } from 'lucide-react';
 import Image from 'next/image';
+import { SocialActions } from '@/components/social/SocialActions';
 
 export default function UserProfilePage() {
   const { id } = useParams();
@@ -64,42 +65,42 @@ export default function UserProfilePage() {
           </div>
 
           <div className="flex-1 space-y-6 text-center md:text-left">
-            <div className="flex flex-col md:flex-row md:items-center gap-4">
-              <h1 className="text-2xl font-headline font-bold">{profile.name}</h1>
-              <div className="flex gap-2 justify-center">
-                <Button className="bg-primary font-bold px-8">Follow</Button>
-                <Button variant="secondary" className="font-bold">Message</Button>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-headline font-bold">{profile.name}</h1>
+                <p className="text-sm text-muted-foreground">@{profile.id.substring(0, 8)}</p>
               </div>
+              <SocialActions targetUserId={profile.userId} />
             </div>
 
             <div className="flex justify-center md:justify-start gap-8 text-sm">
               <div className="flex flex-col items-center md:items-start">
                 <span className="font-bold">{userPosts?.length || 0}</span>
-                <span className="text-muted-foreground">posts</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold">posts</span>
               </div>
               <div className="flex flex-col items-center md:items-start">
-                <span className="font-bold">1.2k</span>
-                <span className="text-muted-foreground">followers</span>
+                <span className="font-bold">{profile.followerCount || 0}</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold">followers</span>
               </div>
               <div className="flex flex-col items-center md:items-start">
-                <span className="font-bold">842</span>
-                <span className="text-muted-foreground">following</span>
+                <span className="font-bold">{profile.friendCount || 0}</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold">friends</span>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <p className="font-bold text-sm">@{profile.id.substring(0, 8)}</p>
-              <p className="text-sm whitespace-pre-wrap">{profile.bio || 'Discovering Ethiopia!'}</p>
-              {profile.location && (
-                <p className="text-xs text-primary font-medium flex items-center gap-1 justify-center md:justify-start">
-                  <UserPlus className="w-3 h-3" /> {profile.location}
-                </p>
-              )}
+            <div className="space-y-2">
+              <p className="text-sm whitespace-pre-wrap max-w-lg">{profile.bio || 'Discovering Ethiopia!'}</p>
+              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground justify-center md:justify-start">
+                {profile.location && (
+                  <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {profile.location}</span>
+                )}
+                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Joined {new Date(profile.createdAt).getFullYear()}</span>
+              </div>
             </div>
           </div>
         </header>
 
-        <Tabs defaultValue="posts" className="w-full border-t">
+        <Tabs defaultValue="posts" className="w-full border-t pt-2">
           <TabsList className="w-full flex justify-center bg-transparent h-12">
             <TabsTrigger value="posts" className="data-[state=active]:border-t-2 data-[state=active]:border-foreground rounded-none bg-transparent">
               <Grid className="w-4 h-4 mr-2" /> POSTS
@@ -108,9 +109,9 @@ export default function UserProfilePage() {
           
           <TabsContent value="posts" className="mt-8">
             {isPostsLoading ? (
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-3 gap-1 md:gap-4">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="aspect-square bg-muted animate-pulse" />
+                  <div key={i} className="aspect-square bg-muted animate-pulse rounded-md" />
                 ))}
               </div>
             ) : userPosts?.length ? (
@@ -127,19 +128,22 @@ export default function UserProfilePage() {
                       />
                     ) : post.videoUrl ? (
                       <div className="w-full h-full flex items-center justify-center">
-                        <PlayCircle className="w-10 h-10 text-white opacity-50" />
+                        <PlayCircle className="w-10 h-10 text-white opacity-50 z-10" />
                         <video src={post.videoUrl} className="absolute inset-0 w-full h-full object-cover opacity-30" muted />
                       </div>
                     ) : (
-                      <div className="w-full h-full bg-secondary flex items-center justify-center p-2 text-xs text-center italic">
+                      <div className="w-full h-full bg-secondary flex items-center justify-center p-2 text-xs text-center italic text-muted-foreground">
                         {post.content}
                       </div>
                     )}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white font-bold">
+                       <span className="flex items-center gap-1"><Heart className="w-4 h-4 fill-white" /> {post.likesCount}</span>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-20 text-muted-foreground italic">
+              <div className="text-center py-20 text-muted-foreground italic border rounded-xl border-dashed">
                 No active posts yet.
               </div>
             )}

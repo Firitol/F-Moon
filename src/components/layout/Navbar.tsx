@@ -2,12 +2,15 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Compass, PlusSquare, User, Bell, Search, Briefcase } from 'lucide-react';
+import { Home, Compass, PlusSquare, User, Bell, Search, Briefcase, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/layout/Logo';
+import { useUser } from '@/firebase';
 
 export function Navbar() {
+  const { user } = useUser();
+
   return (
     <>
       {/* Desktop Navbar */}
@@ -34,16 +37,20 @@ export function Navbar() {
           <Link href="/explore" className="text-muted-foreground hover:text-primary transition-colors" title="Explore">
             <Compass className="w-6 h-6" />
           </Link>
+          <Link href="/messages" className="text-muted-foreground hover:text-primary transition-colors" title="Messages">
+            <MessageSquare className="w-6 h-6" />
+          </Link>
           <Link href="/business/dashboard" className="text-muted-foreground hover:text-primary transition-colors" title="Business Hub">
             <Briefcase className="w-6 h-6" />
           </Link>
-          <Link href="/notifications" className="text-muted-foreground hover:text-primary transition-colors" title="Notifications">
+          <Link href="/notifications" className="text-muted-foreground hover:text-primary transition-colors relative" title="Notifications">
             <Bell className="w-6 h-6" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full border-2 border-background" />
           </Link>
           <Link href="/profile" className="text-muted-foreground hover:text-primary transition-colors" title="My Profile">
             <User className="w-6 h-6" />
           </Link>
-          <Button variant="default" className="rounded-full bg-primary hover:bg-primary/90 px-6 h-9" asChild>
+          <Button variant="default" className="rounded-full bg-primary hover:bg-primary/90 px-6 h-9 font-bold" asChild>
             <Link href="/create">Post</Link>
           </Button>
         </div>
@@ -56,14 +63,13 @@ export function Navbar() {
         </Link>
         <div className="flex items-center gap-3">
           <Link href="/explore">
-            <Button variant="ghost" size="icon" className="h-9 w-9">
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
               <Search className="w-5 h-5" />
             </Button>
           </Link>
-          <Link href="/notifications">
-            <Button variant="ghost" size="icon" className="h-9 w-9 relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-background" />
+          <Link href="/messages">
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
+              <MessageSquare className="w-5 h-5" />
             </Button>
           </Link>
         </div>
@@ -82,8 +88,9 @@ export function Navbar() {
             <PlusSquare className="w-6 h-6 text-white" />
           </div>
         </Link>
-        <Link href="/business/dashboard" className="p-2 text-muted-foreground active:text-primary transition-colors">
-          <Briefcase className="w-6 h-6" />
+        <Link href="/notifications" className="p-2 text-muted-foreground active:text-primary transition-colors relative">
+          <Bell className="w-6 h-6" />
+          <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-background" />
         </Link>
         <Link href="/profile" className="p-2 text-muted-foreground active:text-primary transition-colors">
           <User className="w-6 h-6" />

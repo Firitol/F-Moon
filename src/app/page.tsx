@@ -3,97 +3,120 @@
 
 import { Navbar } from '@/components/layout/Navbar';
 import { PostCard } from '@/components/feed/PostCard';
-import { MOCK_POSTS, MOCK_USERS, MOCK_BUSINESSES } from '@/lib/mock-data';
+import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { PromotionGenerator } from '@/components/business/PromotionGenerator';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, Sparkles, UserPlus } from 'lucide-react';
 import { ProfileHoverCard } from '@/components/profile/ProfileHoverCard';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
+  const { user } = useUser();
+  const db = useFirestore();
+
+  const postsQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(20));
+  }, [db]);
+
+  const { data: posts, isLoading: isPostsLoading } = useCollection(postsQuery);
+
+  const featuredBizQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, 'businesses'), limit(5));
+  }, [db]);
+
+  const { data: featuredBiz } = useCollection(featuredBizQuery);
+
   return (
-    <div className="min-h-screen pb-20 md:pb-0 md:pt-16">
+    <div className="min-h-screen pb-20 md:pb-0 md:pt-16 bg-secondary/10">
       <Navbar />
       
       <main className="max-w-screen-xl mx-auto flex justify-center gap-8 p-4">
         {/* Main Feed */}
         <div className="w-full max-w-xl">
-          {/* Stories-like placeholder */}
-          <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide">
-            {MOCK_USERS.map((user) => (
-              <div key={user.id} className="flex flex-col items-center gap-1 min-w-[72px]">
-                <ProfileHoverCard id={user.id} type="user" initialData={user}>
-                  <div className="p-[2px] rounded-full instagram-gradient">
-                    <Avatar className="h-16 w-16 ring-2 ring-background">
-                      <AvatarImage src={user.avatar} />
-                      <AvatarFallback>{user.name[0]}</AvatarFallback>
-                    </Avatar>
-                  </div>
-                </ProfileHoverCard>
-                <span className="text-xs truncate w-full text-center">{user.name.split(' ')[0]}</span>
-              </div>
-            ))}
-          </div>
+          {/* Welcome Card for new users */}
+          {!posts?.length && !isPostsLoading && (
+            <Card className="mb-6 p-12 text-center border-dashed border-2">
+              <Sparkles className="w-12 h-12 mx-auto text-primary mb-4" />
+              <h2 className="text-xl font-bold mb-2">Welcome to F-Moon</h2>
+              <p className="text-muted-foreground mb-6 text-sm">Be the first to share something with the community!</p>
+              <Button asChild className="bg-primary font-bold"><Link href="/create">Create First Post</Link></Button>
+            </Card>
+          )}
 
           <div className="space-y-6">
-            {MOCK_POSTS.map((post, index) => (
+            {posts?.map((post, index) => (
               <PostCard key={post.id} post={post} priority={index === 0} />
             ))}
+            {isPostsLoading && [1,2,3].map(i => <div key={i} className="h-96 bg-card animate-pulse rounded-xl mb-6" />)}
           </div>
         </div>
 
         {/* Sidebar (Desktop Only) */}
         <aside className="hidden lg:block w-80 space-y-6 sticky top-20 h-fit">
-          <Card className="border-none shadow-sm bg-card">
-            <CardContent className="p-4 flex items-center gap-4">
-              <ProfileHoverCard id={MOCK_USERS[0].id} type="user" initialData={MOCK_USERS[0]}>
-                <Avatar className="h-14 w-14 ring-2 ring-primary/20">
-                  <AvatarImage src={MOCK_USERS[0].avatar} />
-                  <AvatarFallback>AB</AvatarFallback>
-                </Avatar>
-              </ProfileHoverCard>
-              <div>
-                <p className="font-bold text-sm">Abebe Bikila</p>
-                <p className="text-xs text-muted-foreground">Ethiopian Explorer</p>
-              </div>
-              <button className="ml-auto text-xs font-bold text-primary hover:text-primary/80">Switch</button>
-            </CardContent>
-          </Card>
+          {user && (
+            <Card className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
+              <CardContent className="p-4 flex items-center gap-4">
+                <Link href="/profile">
+                  <Avatar className="h-14 w-14 ring-2 ring-primary/10">
+                    <AvatarImage src={user.photoURL || ''} />
+                    <AvatarFallback>{user.displayName?.[0] || 'U'}</AvatarFallback>
+                  </Avatar>
+                </Link>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm truncate">{user.displayName || 'Anonymous User'}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">My Account</p>
+                </div>
+                <Button variant="ghost" size="sm" asChild className="text-primary font-bold">
+                  <Link href="/profile">View</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="space-y-4">
             <div className="flex justify-between items-center px-1">
-              <span className="text-sm font-bold text-muted-foreground">Featured Businesses</span>
-              <button className="text-xs font-bold hover:underline">View All</button>
+              <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Featured Businesses</span>
+              <Link href="/explore" className="text-xs font-bold hover:underline text-primary">Explore</Link>
             </div>
             
-            {MOCK_BUSINESSES.map(biz => (
-              <div key={biz.id} className="flex items-center gap-3 px-1">
-                <ProfileHoverCard id={biz.id} type="business" initialData={biz}>
-                  <Avatar className="h-10 w-10 ring-1 ring-border">
+            {featuredBiz?.map(biz => (
+              <div key={biz.id} className="flex items-center gap-3 px-1 group">
+                <ProfileHoverCard id={biz.id} type="business">
+                  <Avatar className="h-10 w-10 ring-1 ring-border group-hover:ring-primary/50 transition-all">
+                    <AvatarImage src={biz.imageUrl} />
                     <AvatarFallback className="bg-secondary text-primary font-bold">
                       {biz.name[0]}
                     </AvatarFallback>
                   </Avatar>
                 </ProfileHoverCard>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1">
-                    <ProfileHoverCard id={biz.id} type="business" initialData={biz}>
-                      <p className="text-sm font-semibold hover:underline cursor-pointer">{biz.name}</p>
+                    <ProfileHoverCard id={biz.id} type="business">
+                      <p className="text-sm font-semibold truncate hover:text-primary transition-colors">{biz.name}</p>
                     </ProfileHoverCard>
                     {biz.isVerified && <BadgeCheck className="w-3 h-3 text-primary" />}
                   </div>
-                  <p className="text-xs text-muted-foreground">{biz.category}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold">{biz.category}</p>
                 </div>
-                <button className="text-xs font-bold text-primary hover:text-primary/80">Follow</button>
+                <Button variant="ghost" size="sm" className="h-8 text-[10px] font-bold text-primary" asChild>
+                  <Link href={`/business/${biz.id}`}>Follow</Link>
+                </Button>
               </div>
             ))}
           </div>
 
           <PromotionGenerator />
 
-          <footer className="px-1 text-[10px] text-muted-foreground uppercase tracking-widest space-y-2">
-            <p>About • Help • Press • API • Jobs • Privacy • Terms</p>
-            <p>© 2024 F-MOON FROM ETHIOPIA</p>
+          <footer className="px-1 text-[10px] text-muted-foreground uppercase tracking-widest space-y-2 opacity-50">
+            <p className="flex flex-wrap gap-x-2">
+              <span>About</span> <span>Help</span> <span>Privacy</span> <span>Terms</span>
+            </p>
+            <p>© 2024 F-MOON ETHIOPIA</p>
           </footer>
         </aside>
       </main>
