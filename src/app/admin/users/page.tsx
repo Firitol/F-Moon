@@ -1,6 +1,6 @@
-
 'use client';
 
+import { useState, useMemo } from 'react';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import {
@@ -18,21 +18,36 @@ import { Search, MoreVertical, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function UserManagement() {
+  const [searchTerm, setSearchTerm] = useState('');
   const db = useFirestore();
 
   const usersQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(20));
+    return query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(100));
   }, [db]);
 
   const { data: users, isLoading } = useCollection(usersQuery);
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    const term = searchTerm.toLowerCase();
+    return users.filter(user => 
+      (user.name?.toLowerCase().includes(term)) || 
+      (user.email?.toLowerCase().includes(term))
+    );
+  }, [users, searchTerm]);
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search users by name or email..." className="pl-10" />
+          <Input 
+            placeholder="Search users by name or email..." 
+            className="pl-10" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         <div className="flex gap-2">
           <Button variant="outline">Export Data</Button>
@@ -61,8 +76,8 @@ export default function UserManagement() {
                   </TableCell>
                 </TableRow>
               ))
-            ) : users?.length ? (
-              users.map((user) => (
+            ) : filteredUsers.length ? (
+              filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -102,7 +117,7 @@ export default function UserManagement() {
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                  No users found.
+                  No users found matching "{searchTerm}".
                 </TableCell>
               </TableRow>
             )}

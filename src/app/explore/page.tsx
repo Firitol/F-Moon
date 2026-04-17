@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
@@ -10,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Phone, MessageSquare, BadgeCheck, Search, SlidersHorizontal, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useSearchParams } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,10 +23,22 @@ import Link from 'next/link';
 import { SocialActions } from '@/components/social/SocialActions';
 
 export default function ExplorePage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [category, setCategory] = useState('All');
+  const searchParams = useSearchParams();
+  const qParam = searchParams.get('q') || '';
+  const catParam = searchParams.get('cat') || 'All';
+
+  const [searchTerm, setSearchTerm] = useState(qParam);
+  const [category, setCategory] = useState(catParam);
   const [sortBy, setSortBy] = useState('newest');
   const db = useFirestore();
+
+  useEffect(() => {
+    setSearchTerm(qParam);
+  }, [qParam]);
+
+  useEffect(() => {
+    setCategory(catParam);
+  }, [catParam]);
 
   const businessQuery = useMemoFirebase(() => {
     if (!db) return null;
@@ -38,8 +50,10 @@ export default function ExplorePage() {
   const filteredBusinesses = useMemo(() => {
     if (!businesses) return [];
     return businesses.filter(biz => {
-      const matchesSearch = biz.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           biz.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const name = biz.name || '';
+      const desc = biz.description || '';
+      const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           desc.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = category === 'All' || biz.category === category;
       return matchesSearch && matchesCategory;
     }).sort((a, b) => {
@@ -109,7 +123,7 @@ export default function ExplorePage() {
                 <CardContent className="p-0">
                   <div className="flex flex-col md:flex-row">
                     <Link href={`/business/${biz.id}`} className="w-full md:w-48 h-48 bg-primary/10 flex items-center justify-center text-primary text-5xl font-headline font-bold relative">
-                      {biz.name[0]}
+                      {biz.name?.[0] || 'B'}
                       {biz.isVerified && (
                         <div className="absolute top-2 right-2 bg-background p-1 rounded-full shadow-sm">
                           <BadgeCheck className="w-6 h-6 text-primary" />

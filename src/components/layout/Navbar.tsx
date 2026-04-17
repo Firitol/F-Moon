@@ -16,6 +16,7 @@ export function Navbar() {
   const auth = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -30,6 +31,15 @@ export function Navbar() {
     }
   };
 
+  const onSearchSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
+    if ('key' in e && e.key !== 'Enter') return;
+    e.preventDefault();
+    if (searchValue.trim()) {
+      router.push(`/explore?q=${encodeURIComponent(searchValue.trim())}`);
+      setSearchValue('');
+    }
+  };
+
   return (
     <>
       {/* Desktop Navbar */}
@@ -38,16 +48,19 @@ export function Navbar() {
           <Logo />
         </Link>
         
-        <div className="flex-1 max-w-sm mx-4">
+        <form onSubmit={onSearchSubmit} className="flex-1 max-w-sm mx-4">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Search F-Moon..."
               className="pl-10 bg-secondary/50 border-none rounded-full h-9 focus-visible:ring-1 focus-visible:ring-primary"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              onKeyDown={onSearchSubmit}
             />
           </div>
-        </div>
+        </form>
 
         <div className="flex items-center gap-6">
           <Link href="/" className="text-muted-foreground hover:text-primary transition-colors" title="Home">
