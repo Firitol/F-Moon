@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { BadgeCheck, MapPin, Users, Calendar } from 'lucide-react';
 import { useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { SocialActions } from '@/components/social/SocialActions';
 
 interface ProfileHoverCardProps {
   children: React.ReactNode;
@@ -34,6 +35,7 @@ export function ProfileHoverCard({ children, id, type, initialData }: ProfileHov
   const data = fetchedData || initialData;
 
   const profileUrl = type === 'user' ? `/profile/${id}` : `/business/${id}`;
+  const targetIdForSocial = type === 'business' ? (data?.ownerId || id) : (data?.userId || id);
 
   return (
     <HoverCard openDelay={400} closeDelay={200}>
@@ -42,16 +44,20 @@ export function ProfileHoverCard({ children, id, type, initialData }: ProfileHov
       </HoverCardTrigger>
       <HoverCardContent className="w-80 p-0 overflow-hidden border-none shadow-2xl">
         <div className="bg-gradient-to-br from-primary/10 to-accent/10 p-4 space-y-4">
-          <div className="flex justify-between items-start">
+          <div className="flex justify-between items-start gap-4">
             <Avatar className="h-16 w-16 ring-4 ring-background shadow-sm">
               <AvatarImage src={data?.profilePictureUrl || data?.imageUrl || data?.avatar} />
               <AvatarFallback className="text-xl font-bold bg-primary text-primary-foreground">
                 {(data?.name || data?.userName || 'F')[0]}
               </AvatarFallback>
             </Avatar>
-            <Button size="sm" variant="default" className="rounded-full h-8 px-4 font-bold">
-              Follow
-            </Button>
+            <div className="flex-shrink-0">
+               <SocialActions 
+                targetUserId={targetIdForSocial} 
+                isBusiness={type === 'business'} 
+                variant="minimal" 
+              />
+            </div>
           </div>
 
           <div className="space-y-1">

@@ -27,10 +27,15 @@ export default function Home() {
 
   const featuredBizQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collection(db, 'businesses'), limit(5));
+    return query(collection(db, 'businesses'), limit(10));
   }, [db]);
 
   const { data: featuredBiz } = useCollection(featuredBizQuery);
+
+  // Filter out the current user's businesses from the featured list
+  const suggestedBusinesses = featuredBiz
+    ?.filter(biz => biz.ownerId !== user?.uid)
+    .slice(0, 5);
 
   return (
     <div className="min-h-screen pb-20 md:pb-0 md:pt-16 bg-secondary/10">
@@ -84,7 +89,7 @@ export default function Home() {
               <Link href="/explore" className="text-xs font-bold hover:underline text-primary">Explore</Link>
             </div>
             
-            {featuredBiz?.map(biz => (
+            {suggestedBusinesses?.map(biz => (
               <div key={biz.id} className="flex items-center gap-3 px-1 group">
                 <ProfileHoverCard id={biz.id} type="business">
                   <Avatar className="h-10 w-10 ring-1 ring-border group-hover:ring-primary/50 transition-all">
@@ -106,6 +111,10 @@ export default function Home() {
                 <SocialActions targetUserId={biz.ownerId || biz.id} isBusiness={true} variant="minimal" />
               </div>
             ))}
+            
+            {!isPostsLoading && !suggestedBusinesses?.length && (
+              <p className="text-xs text-muted-foreground italic px-1">No other businesses to suggest right now.</p>
+            )}
           </div>
 
           <PromotionGenerator />
