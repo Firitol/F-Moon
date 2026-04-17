@@ -2,20 +2,95 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/firebase';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signInAnonymously,
+  updateProfile 
+} from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Phone, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Phone, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AuthPage() {
+  const auth = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  
   const [method, setMethod] = useState<'email' | 'phone'>('email');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Form states
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    
+    setIsLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      toast({ title: "Welcome back!", description: "Successfully signed in." });
+      router.push('/');
+    } catch (error: any) {
+      toast({ 
+        title: "Login Failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password || !displayName) return;
+
+    setIsLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, { displayName });
+      toast({ title: "Account created!", description: "Welcome to F-Moon." });
+      router.push('/');
+    } catch (error: any) {
+      toast({ 
+        title: "Registration Failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAnonymousSignIn = async () => {
+    setIsLoading(true);
+    try {
+      await signInAnonymously(auth);
+      toast({ title: "Guest Access", description: "Exploring as a guest." });
+      router.push('/');
+    } catch (error: any) {
+      toast({ 
+        title: "Guest Access Failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background relative overflow-hidden">
-      {/* Decorative background elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-3xl" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/5 rounded-full blur-3xl" />
 
@@ -51,67 +126,97 @@ export default function AuthPage() {
                     size="sm" 
                     className="flex-1 rounded-md transition-all h-8 text-xs"
                     onClick={() => setMethod('phone')}
+                    disabled
                   >
                     <Phone className="w-3.5 h-3.5 mr-2" /> Phone
                   </Button>
                 </div>
 
-                <div className="space-y-4">
+                <form onSubmit={handleEmailLogin} className="space-y-4">
                   <div className="space-y-1">
                     <div className="relative">
-                      {method === 'email' ? (
-                        <>
-                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input placeholder="Email address" className="pl-10 h-11" />
-                        </>
-                      ) : (
-                        <>
-                          <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input placeholder="+251 911 22 33 44" className="pl-10 h-11" />
-                        </>
-                      )}
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        type="email"
+                        placeholder="Email address" 
+                        className="pl-10 h-11" 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
                     </div>
                   </div>
                   <div className="space-y-1">
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input type="password" placeholder="Password" className="pl-10 h-11" />
+                      <Input 
+                        type="password" 
+                        placeholder="Password" 
+                        className="pl-10 h-11" 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
                     </div>
                     <div className="text-right">
-                      <button className="text-[10px] text-primary font-bold hover:underline uppercase tracking-wider">Forgot password?</button>
+                      <button type="button" className="text-[10px] text-primary font-bold hover:underline uppercase tracking-wider">Forgot password?</button>
                     </div>
                   </div>
                   
-                  <Button className="w-full bg-primary hover:bg-primary/90 h-11 group" asChild>
-                    <Link href="/">
-                      Sign In
-                      <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-primary hover:bg-primary/90 h-11 group" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Sign In"}
+                    {!isLoading && <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />}
                   </Button>
-                </div>
+                </form>
               </TabsContent>
 
               <TabsContent value="register" className="space-y-4 pt-2">
-                <div className="space-y-4">
+                <form onSubmit={handleEmailRegister} className="space-y-4">
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Full Name" className="pl-10 h-11" />
+                    <Input 
+                      placeholder="Full Name" 
+                      className="pl-10 h-11" 
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      required
+                    />
                   </div>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Email address" className="pl-10 h-11" />
+                    <Input 
+                      type="email"
+                      placeholder="Email address" 
+                      className="pl-10 h-11" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input type="password" placeholder="Create Password" className="pl-10 h-11" />
+                    <Input 
+                      type="password" 
+                      placeholder="Create Password" 
+                      className="pl-10 h-11" 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
                   </div>
-                  <Button className="w-full bg-primary h-11 group" asChild>
-                    <Link href="/">
-                      Create Account
-                      <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-primary h-11 group" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Create Account"}
+                    {!isLoading && <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />}
                   </Button>
-                </div>
+                </form>
               </TabsContent>
             </Tabs>
           </CardHeader>
@@ -123,8 +228,17 @@ export default function AuthPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 w-full">
-              <Button variant="outline" className="w-full border-border hover:bg-secondary/50">Google</Button>
-              <Button variant="outline" className="w-full border-border hover:bg-secondary/50">Apple</Button>
+              <Button 
+                variant="outline" 
+                className="w-full border-border hover:bg-secondary/50"
+                onClick={handleAnonymousSignIn}
+                disabled={isLoading}
+              >
+                Guest Access
+              </Button>
+              <Button variant="outline" className="w-full border-border hover:bg-secondary/50" disabled>
+                Google
+              </Button>
             </div>
           </CardFooter>
         </Card>

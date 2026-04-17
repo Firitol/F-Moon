@@ -2,19 +2,24 @@
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { doc, collection, query, where, orderBy, limit, setDoc } from 'firebase/firestore';
 import { Navbar } from '@/components/layout/Navbar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Grid, Bookmark, Settings, UserPlus, MessageSquare } from 'lucide-react';
-import { PostCard } from '@/components/feed/PostCard';
+import { Grid, Bookmark, Settings, LogOut } from 'lucide-react';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function CurrentUserProfilePage() {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const db = useFirestore();
+  const router = useRouter();
 
   const profileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -22,6 +27,19 @@ export default function CurrentUserProfilePage() {
   }, [db, user]);
 
   const { data: profile } = useDoc(profileRef);
+
+  // Auto-initialize profile if it doesn't exist
+  if (user && !isUserLoading && !profile) {
+    const newProfile = {
+      name: user.displayName || 'New User',
+      profilePictureUrl: user.photoURL || '',
+      bio: 'Discovering F-Moon!',
+      location: '',
+      userId: user.uid,
+      id: user.uid
+    };
+    setDoc(doc(db, 'public_user_profiles', user.uid), newProfile);
+  }
 
   const postsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -35,15 +53,30 @@ export default function CurrentUserProfilePage() {
 
   const { data: userPosts, isLoading: isPostsLoading } = useCollection(postsQuery);
 
-  if (isUserLoading) return <div className="p-20 text-center animate-pulse">Loading Profile...</div>;
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
+
+  if (isUserLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-pulse text-primary font-bold">Initializing Session...</div>
+    </div>
+  );
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="max-w-sm w-full p-6 text-center space-y-4">
-          <h2 className="text-xl font-bold">Please log in to view your profile</h2>
-          <Button asChild className="w-full">
-            <a href="/login">Log In</a>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <Card className="max-w-sm w-full p-8 text-center space-y-6 shadow-xl border-none ring-1 ring-border">
+          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+            <Settings className="w-8 h-8 text-primary" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold">Join the Community</h2>
+            <p className="text-muted-foreground text-sm">Please sign in to access your profile and shared content.</p>
+          </div>
+          <Button asChild className="w-full bg-primary h-12 text-lg font-bold">
+            <Link href="/login">Get Started</Link>
           </Button>
         </Card>
       </div>
@@ -56,20 +89,24 @@ export default function CurrentUserProfilePage() {
       <main className="max-w-4xl mx-auto p-4">
         <header className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-12">
           <div className="relative group">
-            <div className="p-1 rounded-full instagram-gradient">
+            <div className="p-1 rounded-full instagram-gradient shadow-lg">
               <Avatar className="h-32 w-32 md:h-40 md:w-40 ring-4 ring-background">
                 <AvatarImage src={profile?.profilePictureUrl || user.photoURL || ''} />
-                <AvatarFallback className="text-4xl">{(profile?.name || user.displayName || 'U')[0]}</AvatarFallback>
+                <AvatarFallback className="text-4xl bg-secondary text-primary font-bold">
+                  {(profile?.name || user.displayName || 'U')[0]}
+                </AvatarFallback>
               </Avatar>
             </div>
           </div>
 
           <div className="flex-1 space-y-6 text-center md:text-left">
-            <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-4 justify-center md:justify-start">
               <h1 className="text-2xl font-headline font-bold">{profile?.name || user.displayName || 'User'}</h1>
-              <div className="flex gap-2">
+              <div className="flex gap-2 justify-center">
                 <Button variant="secondary" size="sm" className="font-bold">Edit Profile</Button>
-                <Button variant="ghost" size="icon"><Settings className="w-5 h-5" /></Button>
+                <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+                  <LogOut className="w-5 h-5 text-destructive" />
+                </Button>
               </div>
             </div>
 
@@ -89,8 +126,8 @@ export default function CurrentUserProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <p className="font-bold text-sm">@{user.email?.split('@')[0]}</p>
-              <p className="text-sm whitespace-pre-wrap">{profile?.bio || 'No bio yet.'}</p>
+              <p className="font-bold text-sm">@{user.email?.split('@')[0] || user.uid.substring(0, 8)}</p>
+              <p className="text-sm whitespace-pre-wrap">{profile?.bio || 'Discovering F-Moon!'}</p>
               {profile?.location && (
                 <p className="text-xs text-primary font-medium">{profile.location}</p>
               )}

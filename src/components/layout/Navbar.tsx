@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Compass, PlusSquare, User, Bell, Search, Briefcase, Menu } from 'lucide-react';
+import { Home, Compass, PlusSquare, User, Bell, Search, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/layout/Logo';
@@ -21,20 +21,30 @@ export function Navbar() {
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search Ethiopia..."
+              placeholder="Search F-Moon..."
               className="pl-10 bg-secondary/50 border-none rounded-full h-9 focus-visible:ring-1 focus-visible:ring-primary"
             />
           </div>
         </div>
 
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-muted-foreground hover:text-primary transition-colors"><Home className="w-6 h-6" /></Link>
-          <Link href="/explore" className="text-muted-foreground hover:text-primary transition-colors"><Compass className="w-6 h-6" /></Link>
-          <Link href="/business" className="text-muted-foreground hover:text-primary transition-colors"><Briefcase className="w-6 h-6" /></Link>
-          <Link href="/notifications" className="text-muted-foreground hover:text-primary transition-colors"><Bell className="w-6 h-6" /></Link>
-          <Link href="/profile" className="text-muted-foreground hover:text-primary transition-colors"><User className="w-6 h-6" /></Link>
-          <Button variant="default" className="rounded-full bg-primary hover:bg-primary/90 px-6 h-9">
-            Post
+          <Link href="/" className="text-muted-foreground hover:text-primary transition-colors" title="Home">
+            <Home className="w-6 h-6" />
+          </Link>
+          <Link href="/explore" className="text-muted-foreground hover:text-primary transition-colors" title="Explore">
+            <Compass className="w-6 h-6" />
+          </Link>
+          <Link href="/business/dashboard" className="text-muted-foreground hover:text-primary transition-colors" title="Business Hub">
+            <Briefcase className="w-6 h-6" />
+          </Link>
+          <Link href="/notifications" className="text-muted-foreground hover:text-primary transition-colors" title="Notifications">
+            <Bell className="w-6 h-6" />
+          </Link>
+          <Link href="/profile" className="text-muted-foreground hover:text-primary transition-colors" title="My Profile">
+            <User className="w-6 h-6" />
+          </Link>
+          <Button variant="default" className="rounded-full bg-primary hover:bg-primary/90 px-6 h-9" asChild>
+            <Link href="/create">Post</Link>
           </Button>
         </div>
       </nav>
@@ -45,9 +55,11 @@ export function Navbar() {
           <Logo iconClassName="w-8 h-8" />
         </Link>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-9 w-9">
-            <Search className="w-5 h-5" />
-          </Button>
+          <Link href="/explore">
+            <Button variant="ghost" size="icon" className="h-9 w-9">
+              <Search className="w-5 h-5" />
+            </Button>
+          </Link>
           <Link href="/notifications">
             <Button variant="ghost" size="icon" className="h-9 w-9 relative">
               <Bell className="w-5 h-5" />
@@ -70,7 +82,7 @@ export function Navbar() {
             <PlusSquare className="w-6 h-6 text-white" />
           </div>
         </Link>
-        <Link href="/business" className="p-2 text-muted-foreground active:text-primary transition-colors">
+        <Link href="/business/dashboard" className="p-2 text-muted-foreground active:text-primary transition-colors">
           <Briefcase className="w-6 h-6" />
         </Link>
         <Link href="/profile" className="p-2 text-muted-foreground active:text-primary transition-colors">
