@@ -56,7 +56,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
               className="object-cover"
               data-ai-hint="post image"
               priority={priority}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
             />
           </div>
         )}

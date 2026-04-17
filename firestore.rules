@@ -3,11 +3,11 @@ rules_version = '2';
 
 /**
  * F-MOON FIRESTORE SECURITY RULES
- * Updated: 2024-05-21 (Fixing list permissions)
- *
- * Core Philosophy:
- * This ruleset implements a robust, multi-tiered authorization model. 
- * It prioritizes User Ownership and Global Admin privileges. 
+ * Deployment Trigger: 2024-05-21T14:30:00Z
+ * 
+ * Strategy: Authorization Independence via Denormalization.
+ * This ruleset enforces that users can only list content they own 
+ * or content that is explicitly marked as 'active'.
  */
 
 service cloud.firestore {
@@ -15,36 +15,28 @@ service cloud.firestore {
 
     // --- Helper Functions ---
 
-    /** @description Checks if the user is authenticated. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the user is a global administrator. */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/admin_roles/$(request.auth.uid));
     }
 
-    /** @description Checks if the user's UID matches the provided ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks ownership and ensures the document exists for updates/deletes. */
     function isExistingOwner(userId) {
       return resource != null && isOwner(userId);
     }
 
-    /** @description Validates that a field is not being changed during an update. */
     function isUnchanged(fieldName) {
       return request.resource.data[fieldName] == resource.data[fieldName];
     }
 
     // --- Collection Rules ---
 
-    /**
-     * @description Core user account data. Private to the user and admins.
-     */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
@@ -53,9 +45,6 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    /**
-     * @description Publicly accessible user profile details.
-     */
     match /public_user_profiles/{userId} {
       allow get, list: if true;
       allow create: if isOwner(userId) || isAdmin();
@@ -63,29 +52,20 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    /**
-     * @description Marker collection for administrator privileges.
-     */
     match /admin_roles/{adminId} {
       allow get: if isOwner(adminId) || isAdmin();
       allow list: if isAdmin();
       allow write: if isAdmin();
     }
 
-    /**
-     * @description Business categories lookup table.
-     */
     match /business_categories/{categoryId} {
       allow get, list: if true;
       allow write: if isAdmin();
     }
 
-    /**
-     * @description Business profiles. 
-     */
     match /businesses/{businessId} {
       allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.ownerId);
-      // QAP: Fix list rule - use resource.data instead of request.query
+      // QAP: Allows listing public active businesses OR user's own businesses
       allow list: if isAdmin() 
                   || (resource.data.status == 'active')
                   || (isSignedIn() && resource.data.ownerId == request.auth.uid);
@@ -94,17 +74,11 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    /**
-     * @description Subscription plans lookup table.
-     */
     match /subscription_plans/{planId} {
       allow get, list: if true;
       allow write: if isAdmin();
     }
 
-    /**
-     * @description Business subscriptions.
-     */
     match /business_subscriptions/{subscriptionId} {
       allow get: if resource == null || isOwner(resource.data.ownerId) || isAdmin();
       allow list: if isAdmin() || (isSignedIn() && resource.data.ownerId == request.auth.uid);
@@ -112,12 +86,9 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    /**
-     * @description User-generated posts.
-     */
     match /posts/{postId} {
       allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.authorId);
-      // QAP: Fix list rule - use resource.data instead of request.query
+      // QAP: Allows listing public active posts OR user's own posts
       allow list: if isAdmin() 
                   || (resource.data.status == 'active')
                   || (isSignedIn() && resource.data.authorId == request.auth.uid);
@@ -126,10 +97,10 @@ service cloud.firestore {
       allow delete: if isExistingOwner(resource.data.authorId) || isAdmin();
 
       match /comments/{commentId} {
-        allow get, list: if true; // Publicly readable for active threads
+        allow get, list: if true;
         allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
         allow update: if (isExistingOwner(resource.data.authorId) && isUnchanged('authorId')) || isAdmin();
-        allow delete: if isExistingOwner(resource.data.authorId) || isAdmin();
+        allow delete: if (isExistingOwner(resource.data.authorId)) || isAdmin();
       }
 
       match /likes/{userId} {
@@ -140,9 +111,6 @@ service cloud.firestore {
       }
     }
 
-    /**
-     * @description Social graph (follows).
-     */
     match /follows/{followId} {
       allow get, list: if true;
       allow create: if isSignedIn() && request.resource.data.followerId == request.auth.uid;
@@ -150,9 +118,6 @@ service cloud.firestore {
       allow delete: if isExistingOwner(resource.data.followerId) || isAdmin();
     }
 
-    /**
-     * @description Financial transaction records.
-     */
     match /payments/{paymentId} {
       allow get: if resource == null || isOwner(resource.data.userId) || isAdmin();
       allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
@@ -160,9 +125,6 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    /**
-     * @description Moderation reports.
-     */
     match /reports/{reportId} {
       allow get: if resource == null || isOwner(resource.data.reporterId) || isAdmin();
       allow list: if isAdmin() || (isSignedIn() && resource.data.reporterId == request.auth.uid);
@@ -171,15 +133,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    /**
-     * @description Real-time notifications for users.
-     */
     match /notifications/{notificationId} {
-      allow get: if resource == null || isAdmin() || (isSignedIn() && resource.data.recipientId == request.auth.uid);
-      // QAP: Fix list rule - use resource.data instead of request.query
+      allow get: if isAdmin() || (isSignedIn() && resource.data.recipientId == request.auth.uid);
+      // QAP: Fix list rule for notifications - ensure user can only list their own
       allow list: if isAdmin() || (isSignedIn() && resource.data.recipientId == request.auth.uid);
       allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || (isExistingOwner(resource.data.recipientId));
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.recipientId == request.auth.uid);
     }
   }
 }
