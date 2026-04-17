@@ -7,7 +7,6 @@ import { MOCK_POSTS, MOCK_USERS, MOCK_BUSINESSES } from '@/lib/mock-data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { PromotionGenerator } from '@/components/business/PromotionGenerator';
-import { Badge } from '@/components/ui/badge';
 import { BadgeCheck } from 'lucide-react';
 import { ProfileHoverCard } from '@/components/profile/ProfileHoverCard';
 
@@ -37,8 +36,8 @@ export default function Home() {
           </div>
 
           <div className="space-y-6">
-            {MOCK_POSTS.map((post) => (
-              <PostCard key={post.id} post={post} />
+            {MOCK_POSTS.map((post, index) => (
+              <PostCard key={post.id} post={post} priority={index === 0} />
             ))}
           </div>
         </div>

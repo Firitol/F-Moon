@@ -11,9 +11,10 @@ import { ProfileHoverCard } from '@/components/profile/ProfileHoverCard';
 
 interface PostCardProps {
   post: Post;
+  priority?: boolean;
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, priority = false }: PostCardProps) {
   // Safe defaults for numeric fields to prevent undefined errors
   const likesCount = post.likesCount || 0;
   const commentsCount = post.commentsCount || 0;
@@ -50,10 +51,12 @@ export function PostCard({ post }: PostCardProps) {
           <div className="relative aspect-square w-full">
             <Image
               src={post.imageUrl}
-              alt="Post image"
+              alt="Post content"
               fill
               className="object-cover"
-              data-ai-hint="Ethiopia post"
+              data-ai-hint="post image"
+              priority={priority}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
             />
           </div>
         )}

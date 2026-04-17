@@ -3,6 +3,7 @@ rules_version = '2';
 
 /**
  * F-MOON FIRESTORE SECURITY RULES
+ * Updated: 2024-05-20 (Forced Redeploy)
  *
  * Core Philosophy:
  * This ruleset implements a robust, multi-tiered authorization model. 
@@ -84,10 +85,10 @@ service cloud.firestore {
      */
     match /businesses/{businessId} {
       allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.ownerId);
-      // QAP: Support various listing patterns
+      // QAP: Support various listing patterns including owner filters
       allow list: if isAdmin() 
-                  || request.query.status == 'active' 
-                  || (isSignedIn() && request.query.ownerId == request.auth.uid);
+                  || (request.query.status == 'active')
+                  || (isSignedIn() && (request.query.ownerId == request.auth.uid));
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if (isExistingOwner(resource.data.ownerId) && isUnchanged('ownerId')) || isAdmin();
       allow delete: if isAdmin();
@@ -116,7 +117,7 @@ service cloud.firestore {
      */
     match /posts/{postId} {
       allow get: if resource == null || isAdmin() || resource.data.status == 'active' || isOwner(resource.data.authorId);
-      // QAP: Broad support for filtered lists
+      // QAP: Broad support for filtered lists by status or author
       allow list: if isAdmin() 
                   || (request.query.status == 'active')
                   || (isSignedIn() && request.query.authorId == request.auth.uid);
@@ -174,10 +175,10 @@ service cloud.firestore {
      * @description Real-time notifications for users.
      */
     match /notifications/{notificationId} {
-      allow get: if isAdmin() || (isSignedIn() && (resource == null || resource.data.recipientId == request.auth.uid));
-      allow list: if isAdmin() || (isSignedIn() && request.query.recipientId == request.auth.uid);
+      allow get: if isSignedIn() && (isAdmin() || (resource != null && resource.data.recipientId == request.auth.uid));
+      allow list: if isSignedIn() && (isAdmin() || request.query.recipientId == request.auth.uid);
       allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || (isSignedIn() && (resource != null && resource.data.recipientId == request.auth.uid));
+      allow update, delete: if isSignedIn() && (isAdmin() || (resource != null && resource.data.recipientId == request.auth.uid));
     }
   }
 }
