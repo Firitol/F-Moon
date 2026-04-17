@@ -1,11 +1,8 @@
 rules_version = '2';
 
 /**
- * F-MOON FIRESTORE SECURITY RULES - EMERGENCY PUBLIC ACCESS
- * Deployment Trigger: 2024-05-21T16:15:00Z
- * 
- * WARNING: These rules allow read and write access to any user (including unauthenticated ones).
- * This is intended ONLY for development and rapid prototyping to resolve permission errors.
+ * FIRESTORE SECURITY RULES - FULL PUBLIC ACCESS
+ * Deployment Trigger: 2024-05-21T17:30:00Z
  */
 
 service cloud.firestore {
