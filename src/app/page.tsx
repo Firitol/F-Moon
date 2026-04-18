@@ -1,6 +1,8 @@
+
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { PostCard } from '@/components/feed/PostCard';
 import { useCollection, useMemoFirebase, useFirestore, useUser, useDoc } from '@/firebase';
@@ -15,8 +17,16 @@ import { Button } from '@/components/ui/button';
 import { SocialActions } from '@/components/social/SocialActions';
 
 export default function Home() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const db = useFirestore();
+  const router = useRouter();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
 
   const profileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -56,6 +66,19 @@ export default function Home() {
     ?.filter(biz => biz.status === 'active' && biz.ownerId !== user?.uid)
     .slice(0, 5);
 
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="w-12 h-12 bg-primary/20 rounded-full" />
+          <p className="text-sm font-bold text-primary uppercase tracking-widest">Entering F-Moon...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
   return (
     <div className="min-h-screen pb-20 md:pb-0 md:pt-16 bg-secondary/10">
       <Navbar />
@@ -82,25 +105,23 @@ export default function Home() {
 
         {/* Sidebar (Desktop Only) */}
         <aside className="hidden lg:block w-80 space-y-6 sticky top-20 h-fit">
-          {user && (
-            <Card className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-              <CardContent className="p-4 flex items-center gap-4">
-                <Link href="/profile">
-                  <Avatar className="h-14 w-14 ring-2 ring-primary/10">
-                    <AvatarImage src={profile?.profilePictureUrl || user.photoURL || ''} />
-                    <AvatarFallback>{profile?.name?.[0] || user.displayName?.[0] || 'U'}</AvatarFallback>
-                  </Avatar>
-                </Link>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm truncate">{profile?.name || user.displayName || 'Anonymous User'}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">My Account</p>
-                </div>
-                <Button variant="ghost" size="sm" asChild className="text-primary font-bold">
-                  <Link href="/profile">View</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <Card className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex items-center gap-4">
+              <Link href="/profile">
+                <Avatar className="h-14 w-14 ring-2 ring-primary/10">
+                  <AvatarImage src={profile?.profilePictureUrl || user.photoURL || ''} />
+                  <AvatarFallback>{profile?.name?.[0] || user.displayName?.[0] || 'U'}</AvatarFallback>
+                </Avatar>
+              </Link>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm truncate">{profile?.name || user.displayName || 'Anonymous User'}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">My Account</p>
+              </div>
+              <Button variant="ghost" size="sm" asChild className="text-primary font-bold">
+                <Link href="/profile">View</Link>
+              </Button>
+            </CardContent>
+          </Card>
 
           <div className="space-y-4">
             <div className="flex justify-between items-center px-1">

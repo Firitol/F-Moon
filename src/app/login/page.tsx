@@ -1,24 +1,28 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signInAnonymously,
   updateProfile 
 } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Phone, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Phone, Mail, Lock, User, ArrowRight, Loader2, MapPin, AlignLeft } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AuthPage() {
   const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -29,6 +33,8 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [location, setLocation] = useState('');
+  const [bio, setBio] = useState('');
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +63,40 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName });
-      toast({ title: "Account created!", description: "Welcome to F-Moon." });
+      const user = userCredential.user;
+
+      // Update basic auth profile
+      await updateProfile(user, { displayName });
+
+      // Create persistent Firestore profile with extended details
+      if (db) {
+        await setDoc(doc(db, 'public_user_profiles', user.uid), {
+          id: user.uid,
+          userId: user.uid,
+          name: displayName,
+          email: user.email,
+          location: location || 'Addis Ababa, Ethiopia',
+          bio: bio || 'Welcome to my F-Moon profile!',
+          profilePictureUrl: '',
+          createdAt: new Date().toISOString(),
+          followerCount: 0,
+          followingCount: 0,
+          friendCount: 0
+        }, { merge: true });
+
+        // Also create a private user document for admin purposes
+        await setDoc(doc(db, 'users', user.uid), {
+          id: user.uid,
+          name: displayName,
+          email: user.email,
+          role: 'NormalUser',
+          status: 'active',
+          avatar: '',
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      toast({ title: "Account created!", description: "Welcome to F-Moon community." });
       router.push('/');
     } catch (error: any) {
       toast({ 
@@ -97,17 +135,17 @@ export default function AuthPage() {
         <div className="text-center space-y-4">
           <Logo className="justify-center" iconClassName="w-16 h-16" />
           <div className="space-y-1">
-            <h1 className="text-3xl font-headline font-bold">Welcome Back</h1>
-            <p className="text-muted-foreground text-sm">Discover and connect with your Ethiopian community</p>
+            <h1 className="text-3xl font-headline font-bold">F-Moon Ethiopia</h1>
+            <p className="text-muted-foreground text-sm">Discover and connect with your local community</p>
           </div>
         </div>
 
-        <Card className="shadow-2xl border-none ring-1 ring-border bg-card/50 backdrop-blur-sm">
+        <Card className="shadow-2xl border-none ring-1 ring-border bg-card/50 backdrop-blur-sm overflow-hidden">
           <CardHeader className="pb-0 pt-6">
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6 bg-secondary/50 p-1 rounded-xl">
                 <TabsTrigger value="login" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">Login</TabsTrigger>
-                <TabsTrigger value="register" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">Join</TabsTrigger>
+                <TabsTrigger value="register" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">Join F-Moon</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login" className="space-y-6">
@@ -175,7 +213,8 @@ export default function AuthPage() {
                 </form>
               </TabsContent>
 
-              <TabsContent value="register" className="space-y-4 pt-2">
+              <TabsContent value="register" className="space-y-4">
+                <p className="text-xs text-muted-foreground font-medium text-center mb-2 italic">Tell us a bit about yourself to join the F-Moon community.</p>
                 <form onSubmit={handleEmailRegister} className="space-y-4">
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -210,6 +249,24 @@ export default function AuthPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                    />
+                  </div>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Location (e.g. Addis Ababa, Bole)" 
+                      className="pl-10 h-11" 
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                    />
+                  </div>
+                  <div className="relative">
+                    <AlignLeft className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Textarea 
+                      placeholder="Short Bio - What brings you to F-Moon?" 
+                      className="pl-10 pt-2 min-h-[80px]" 
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
                     />
                   </div>
                   <Button 
