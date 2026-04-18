@@ -11,16 +11,33 @@ F-Moon is a modern, real-time social platform designed for the Ethiopian communi
 - **AI**: Genkit (Google Gemini)
 - **Deployment**: Optimized for Vercel
 
-## Production Deployment to Vercel
+## Deployment Instructions
 
-This application is ready to be deployed to Vercel. Follow these steps:
+### 1. Push to GitHub
+To push this code to your own repository, you can use the following commands in your local terminal:
 
-1. **Push your code** to a GitHub, GitLab, or Bitbucket repository.
-2. **Import the project** into the [Vercel Dashboard](https://vercel.com/new).
+```bash
+# Initialize git
+git init
+git add .
+git commit -m "Initial commit of F-Moon"
+
+# Add your remote (Replace <username> and <repo-name>)
+# If using a token, it is safer to authenticate via the GitHub CLI (gh auth login)
+git remote add origin https://github.com/<username>/<repo-name>.git
+
+# Push the code
+git branch -M main
+git push -u origin main
+```
+
+### 2. Connect to Vercel
+1. Go to the [Vercel Dashboard](https://vercel.com/new).
+2. Import the repository you just created.
 3. **Configure Environment Variables**:
-   - Ensure your Firebase configuration matches your production project in `src/firebase/config.ts`.
+   - Ensure your Firebase configuration matches your production project.
    - Add `GOOGLE_GENAI_API_KEY` to your Vercel project settings for AI features.
-4. **Deploy**: Vercel will automatically detect Next.js and handle the build process.
+4. **Deploy**: Vercel will automatically handle the build process.
 
 ## Key Features
 
