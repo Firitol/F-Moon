@@ -1,10 +1,9 @@
-
 'use client';
 
 import { Navbar } from '@/components/layout/Navbar';
 import { PostCard } from '@/components/feed/PostCard';
 import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { PromotionGenerator } from '@/components/business/PromotionGenerator';
@@ -20,19 +19,23 @@ export default function Home() {
 
   const postsQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(20));
+    return query(
+      collection(db, 'posts'), 
+      where('status', '==', 'active'),
+      orderBy('createdAt', 'desc'), 
+      limit(20)
+    );
   }, [db]);
 
   const { data: posts, isLoading: isPostsLoading } = useCollection(postsQuery);
 
   const featuredBizQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collection(db, 'businesses'), limit(10));
+    return query(collection(db, 'businesses'), where('status', '==', 'active'), limit(10));
   }, [db]);
 
   const { data: featuredBiz } = useCollection(featuredBizQuery);
 
-  // Filter out the current user's businesses from the featured list
   const suggestedBusinesses = featuredBiz
     ?.filter(biz => biz.ownerId !== user?.uid)
     .slice(0, 5);
@@ -111,10 +114,6 @@ export default function Home() {
                 <SocialActions targetUserId={biz.ownerId || biz.id} isBusiness={true} variant="minimal" />
               </div>
             ))}
-            
-            {!isPostsLoading && !suggestedBusinesses?.length && (
-              <p className="text-xs text-muted-foreground italic px-1">No other businesses to suggest right now.</p>
-            )}
           </div>
 
           <PromotionGenerator />

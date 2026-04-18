@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
@@ -11,7 +10,8 @@ import {
   useMemoFirebase, 
   updateDocumentNonBlocking, 
   addDocumentNonBlocking, 
-  setDocumentNonBlocking 
+  setDocumentNonBlocking,
+  deleteDocumentNonBlocking
 } from '@/firebase';
 import { 
   collection, 
@@ -25,9 +25,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, MessageSquare, ShieldAlert, ChevronLeft, Loader2 } from 'lucide-react';
+import { Send, MessageSquare, ShieldAlert, ChevronLeft, Loader2, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 function ConversationItem({ conversation, currentUser, activePartnerId, onSelect }: { 
   conversation: any, 
@@ -102,6 +103,7 @@ function ConversationItem({ conversation, currentUser, activePartnerId, onSelect
 function MessagesContent() {
   const { user } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
   const searchParams = useSearchParams();
   const partnerParam = searchParams.get('partner');
 
@@ -240,6 +242,14 @@ function MessagesContent() {
     setActivePartnerId(partnerId);
   };
 
+  const handleDeleteConversation = () => {
+    if (!db || !activeConversationId) return;
+    deleteDocumentNonBlocking(doc(db, 'conversations', activeConversationId));
+    setActiveConversationId(null);
+    setActivePartnerId(null);
+    toast({ title: "Conversation Deleted" });
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -256,7 +266,7 @@ function MessagesContent() {
     <div className="min-h-screen pb-20 md:pt-16 bg-secondary/10">
       <Navbar />
       <main className="max-w-6xl mx-auto h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] flex bg-card border rounded-none md:rounded-xl overflow-hidden shadow-xl mt-0 md:mt-4">
-        <aside className={`w-full md:w-80 border-r flex flex-col ${activeConversationId && mounted && window.innerWidth < 768 ? 'hidden' : 'flex'}`}>
+        <aside className={`w-full md:w-80 border-r flex flex-col ${activeConversationId && mounted && typeof window !== 'undefined' && window.innerWidth < 768 ? 'hidden' : 'flex'}`}>
           <div className="p-4 border-b bg-muted/30">
             <h2 className="font-headline font-bold text-lg">Messages</h2>
           </div>
@@ -319,6 +329,9 @@ function MessagesContent() {
                     <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest mt-1">Active Now</span>
                   </div>
                 </div>
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={handleDeleteConversation}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </header>
 
               <ScrollArea className="flex-1 p-6" ref={scrollRef}>

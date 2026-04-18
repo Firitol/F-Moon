@@ -19,13 +19,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Grid, Bookmark, Settings, LogOut, PlayCircle, Camera, Loader2, MapPin, Heart } from 'lucide-react';
+import { Grid, Bookmark, Settings, LogOut, PlayCircle, Camera, Loader2, MapPin, Heart, Archive } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { PostCard } from '@/components/feed/PostCard';
 
 export default function CurrentUserProfilePage() {
   const { user, isUserLoading } = useUser();
@@ -60,7 +61,6 @@ export default function CurrentUserProfilePage() {
     }
   }, [profile]);
 
-  // Auto-initialize profile if it doesn't exist
   useEffect(() => {
     if (user && !isUserLoading && !profile && db) {
       const initProfile = async () => {
@@ -84,12 +84,26 @@ export default function CurrentUserProfilePage() {
     return query(
       collection(db, 'posts'),
       where('authorId', '==', user.uid),
+      where('status', '==', 'active'),
       orderBy('createdAt', 'desc'),
       limit(20)
     );
   }, [db, user]);
 
   const { data: userPosts, isLoading: isPostsLoading } = useCollection(postsQuery);
+
+  const archivedQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(
+      collection(db, 'posts'),
+      where('authorId', '==', user.uid),
+      where('status', '==', 'archived'),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+  }, [db, user]);
+
+  const { data: archivedPosts, isLoading: isArchivedLoading } = useCollection(archivedQuery);
 
   const savedQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -175,10 +189,7 @@ export default function CurrentUserProfilePage() {
       <Navbar />
       <main className="max-w-4xl mx-auto p-4">
         <header className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-12">
-          <div 
-            className="relative group cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
-          >
+          <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
             <div className="p-1 rounded-full instagram-gradient shadow-lg transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
               <Avatar className="h-32 w-32 md:h-40 md:w-40 ring-4 ring-background overflow-hidden relative">
                 <AvatarImage src={profile?.profilePictureUrl || user.photoURL || ''} className="object-cover" />
@@ -191,13 +202,7 @@ export default function CurrentUserProfilePage() {
                 </div>
               </Avatar>
             </div>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/*" 
-              onChange={handlePhotoChange} 
-            />
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoChange} />
           </div>
 
           <div className="flex-1 space-y-6 text-center md:text-left">
@@ -217,39 +222,19 @@ export default function CurrentUserProfilePage() {
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
                         <Label htmlFor="name">Display Name</Label>
-                        <Input 
-                          id="name" 
-                          value={editData.name} 
-                          onChange={(e) => setEditData({...editData, name: e.target.value})} 
-                        />
+                        <Input id="name" value={editData.name} onChange={(e) => setEditData({...editData, name: e.target.value})} />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="bio">Bio</Label>
-                        <Textarea 
-                          id="bio" 
-                          placeholder="Tell us about yourself..." 
-                          value={editData.bio}
-                          onChange={(e) => setEditData({...editData, bio: e.target.value})}
-                          className="min-h-[100px]"
-                        />
+                        <Textarea id="bio" placeholder="Tell us about yourself..." value={editData.bio} onChange={(e) => setEditData({...editData, bio: e.target.value})} className="min-h-[100px]" />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="location">Location</Label>
-                        <Input 
-                          id="location" 
-                          placeholder="e.g. Addis Ababa, Ethiopia"
-                          value={editData.location}
-                          onChange={(e) => setEditData({...editData, location: e.target.value})}
-                        />
+                        <Input id="location" placeholder="e.g. Addis Ababa, Ethiopia" value={editData.location} onChange={(e) => setEditData({...editData, location: e.target.value})} />
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button 
-                        type="submit" 
-                        onClick={handleUpdateProfile} 
-                        disabled={isUpdating}
-                        className="bg-primary font-bold w-full sm:w-auto"
-                      >
+                      <Button type="submit" onClick={handleUpdateProfile} disabled={isUpdating} className="bg-primary font-bold w-full sm:w-auto">
                         {isUpdating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                         Save Changes
                       </Button>
@@ -291,35 +276,29 @@ export default function CurrentUserProfilePage() {
         </header>
 
         <Tabs defaultValue="posts" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 bg-transparent border-t rounded-none h-12">
+          <TabsList className="w-full grid grid-cols-3 bg-transparent border-t rounded-none h-12">
             <TabsTrigger value="posts" className="data-[state=active]:border-t-2 data-[state=active]:border-foreground rounded-none bg-transparent">
               <Grid className="w-4 h-4 mr-2" /> POSTS
             </TabsTrigger>
             <TabsTrigger value="saved" className="data-[state=active]:border-t-2 data-[state=active]:border-foreground rounded-none bg-transparent">
               <Bookmark className="w-4 h-4 mr-2" /> SAVED
             </TabsTrigger>
+            <TabsTrigger value="archived" className="data-[state=active]:border-t-2 data-[state=active]:border-foreground rounded-none bg-transparent">
+              <Archive className="w-4 h-4 mr-2" /> ARCHIVE
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="posts" className="mt-8">
             {isPostsLoading ? (
               <div className="grid grid-cols-3 gap-1 md:gap-4">
-                {[1, 2, 3, 4, 5, 6].map(i => (
-                  <div key={i} className="aspect-square bg-muted animate-pulse rounded-md" />
-                ))}
+                {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="aspect-square bg-muted animate-pulse rounded-md" />)}
               </div>
             ) : userPosts?.length ? (
               <div className="grid grid-cols-3 gap-1 md:gap-6">
                 {userPosts.map((post) => (
                   <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square group cursor-pointer overflow-hidden rounded-md bg-muted shadow-sm hover:shadow-md transition-shadow">
                     {post.imageUrl ? (
-                      <Image 
-                        src={post.imageUrl} 
-                        alt="User post" 
-                        fill 
-                        className="object-cover transition-transform duration-500 group-hover:scale-110" 
-                        unoptimized={post.imageUrl.startsWith('data:')}
-                        sizes="(max-width: 768px) 33vw, 300px"
-                      />
+                      <Image src={post.imageUrl} alt="User post" fill className="object-cover transition-transform duration-500 group-hover:scale-110" unoptimized={post.imageUrl.startsWith('data:')} sizes="(max-width: 768px) 33vw, 300px" />
                     ) : post.videoUrl ? (
                       <div className="w-full h-full flex items-center justify-center bg-black">
                         <PlayCircle className="w-10 h-10 text-white opacity-50 z-10" />
@@ -354,14 +333,7 @@ export default function CurrentUserProfilePage() {
                 {savedPosts.map((saved) => (
                   <Link href={`/post/${saved.postId}`} key={saved.id} className="relative aspect-square group cursor-pointer overflow-hidden rounded-md bg-muted">
                     {saved.postData?.imageUrl ? (
-                      <Image 
-                        src={saved.postData.imageUrl} 
-                        alt="Saved post" 
-                        fill 
-                        className="object-cover transition-transform group-hover:scale-110" 
-                        unoptimized={saved.postData.imageUrl.startsWith('data:')}
-                        sizes="(max-width: 768px) 33vw, 300px"
-                      />
+                      <Image src={saved.postData.imageUrl} alt="Saved post" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={saved.postData.imageUrl.startsWith('data:')} sizes="(max-width: 768px) 33vw, 300px" />
                     ) : (
                       <div className="w-full h-full bg-secondary flex items-center justify-center p-2 text-[10px] text-center italic text-muted-foreground">
                         {saved.postData?.content || 'Saved Post'}
@@ -377,6 +349,25 @@ export default function CurrentUserProfilePage() {
               <div className="text-center py-24 border-2 border-dashed rounded-2xl bg-muted/20">
                 <Bookmark className="w-16 h-16 mx-auto mb-4 opacity-10 text-accent" />
                 <p className="text-muted-foreground font-medium">Saved posts will appear here.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="archived" className="mt-8">
+            {isArchivedLoading ? (
+               <div className="grid grid-cols-3 gap-1 md:gap-4">
+                {[1, 2, 3].map(i => <div key={i} className="aspect-square bg-muted animate-pulse rounded-md" />)}
+              </div>
+            ) : archivedPosts?.length ? (
+              <div className="space-y-6">
+                {archivedPosts.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-24 border-2 border-dashed rounded-2xl bg-muted/20">
+                <Archive className="w-16 h-16 mx-auto mb-4 opacity-10 text-muted-foreground" />
+                <p className="text-muted-foreground font-medium">No archived posts.</p>
               </div>
             )}
           </TabsContent>
