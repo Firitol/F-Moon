@@ -12,7 +12,7 @@ import { z } from 'genkit';
 
 const GenerateBusinessDescriptionInputSchema = z.object({
   businessCategory: z.string().describe('The category of the business (e.g., "hotel", "restaurant", "retail shop").'),
-  businessOfferings: z.string().describe('A description of the business\u0027s specific products or services (e.g., "fine dining with Ethiopian cuisine", "handmade leather goods", "accommodation with spa services").')
+  businessOfferings: z.string().describe('A description of the business\'s specific products or services (e.g., "fine dining with Ethiopian cuisine", "handmade leather goods", "accommodation with spa services").')
 });
 export type GenerateBusinessDescriptionInput = z.infer<typeof GenerateBusinessDescriptionInputSchema>;
 
@@ -29,7 +29,21 @@ const prompt = ai.definePrompt({
   name: 'generateBusinessDescriptionPrompt',
   input: { schema: GenerateBusinessDescriptionInputSchema },
   output: { schema: GenerateBusinessDescriptionOutputSchema },
-  prompt: `You are an AI assistant specialized in crafting compelling business descriptions for local Ethiopian businesses.\nYour goal is to create an attractive and informative description based on the provided business category and offerings.\nThe description should be engaging, highlight unique selling points, and clearly communicate what the business offers to potential customers in Ethiopia.\nKeep the description concise but comprehensive, suitable for a social media business profile.\n\nBusiness Category: {{{businessCategory}}}\nBusiness Offerings: {{{businessOfferings}}}\n\nGenerate a business description in a friendly and professional tone.`
+  config: {
+    safetySettings: [
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+    ],
+  },
+  prompt: `You are an AI assistant specialized in crafting compelling business descriptions for local Ethiopian businesses.
+Your goal is to create an attractive and informative description based on the provided business category and offerings.
+The description should be engaging, highlight unique selling points, and clearly communicate what the business offers to potential customers in Ethiopia.
+Keep the description concise but comprehensive, suitable for a social media business profile.
+
+Business Category: {{{businessCategory}}}
+Business Offerings: {{{businessOfferings}}}
+
+Generate a business description in a friendly and professional tone. The output must be a valid JSON object.`
 });
 
 const generateBusinessDescriptionFlow = ai.defineFlow(
@@ -40,6 +54,7 @@ const generateBusinessDescriptionFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    return output!;
+    if (!output) throw new Error('Failed to generate business description');
+    return output;
   }
 );

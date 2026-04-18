@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow for generating engaging social media captions.
@@ -40,6 +39,12 @@ const captionPrompt = ai.definePrompt({
   name: 'captionPrompt',
   input: {schema: SuggestPostCaptionInputSchema},
   output: {schema: SuggestPostCaptionOutputSchema},
+  config: {
+    safetySettings: [
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+    ],
+  },
   prompt: `You are an expert social media manager who writes engaging and catchy captions for posts on a local business discovery platform called F-Moon.
 Your goal is to create a compelling caption that will maximize user engagement for a user's post.
 
@@ -48,7 +53,8 @@ Input details:
 {{#if photoDataUri}}Photo: {{media url=photoDataUri}}{{/if}}
 
 Based on the provided information (either text description, an image, or both), suggest an engaging social media caption.
-The caption should be concise, attention-grabbing, and suitable for a local community and business-focused platform. Ensure it encourages interaction and discovery. Do not include hashtags unless specifically requested in the description.`,
+The caption should be concise, attention-grabbing, and suitable for a local community and business-focused platform. Ensure it encourages interaction and discovery. Do not include hashtags unless specifically requested in the description.
+The output must be a valid JSON object matching the requested schema.`,
 });
 
 const suggestPostCaptionFlow = ai.defineFlow(
@@ -59,6 +65,7 @@ const suggestPostCaptionFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await captionPrompt(input);
-    return output!;
+    if (!output) throw new Error('Failed to generate caption');
+    return output;
   }
 );

@@ -53,6 +53,14 @@ const prompt = ai.definePrompt({
   name: 'generatePromotionalTextPrompt',
   input: {schema: GeneratePromotionalTextInputSchema},
   output: {schema: GeneratePromotionalTextOutputSchema},
+  config: {
+    safetySettings: [
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+    ],
+  },
   prompt: `You are an expert marketing copywriter specializing in creating compelling promotional content for local businesses in Ethiopia.
 
 Your goal is to generate engaging, concise, and effective promotional text based on the provided business details and promotion goals. The text should attract customers and encourage them to take action.
@@ -66,7 +74,7 @@ Target Audience: {{{targetAudience}}}
 {{#if callToAction}}
 Call to Action: {{{callToAction}}}
 {{/if}}
-{{#if keywords.length}}
+{{#if keywords}}
 Keywords to Include: {{#each keywords}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
 {{/if}}
 {{#if promotionGoal}}
@@ -75,8 +83,7 @@ Promotion Goal: {{{promotionGoal}}}
 
 Preferred Length: {{{lengthPreference}}}
 
-Please generate the promotional text. Focus on highlighting benefits and creating a sense of urgency or desire. The output should be directly usable in a social media post or business listing.
-`,
+Please generate the promotional text. Focus on highlighting benefits and creating a sense of urgency or desire. The output must be a valid JSON object matching the requested schema.`,
 });
 
 const generatePromotionalTextFlow = ai.defineFlow(
@@ -87,6 +94,7 @@ const generatePromotionalTextFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) throw new Error('Failed to generate promotional text');
+    return output;
   }
 );

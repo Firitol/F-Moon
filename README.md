@@ -28,14 +28,14 @@ git push -u origin main
 ### 2. Connect to Vercel
 1. Go to the [Vercel Dashboard](https://vercel.com/new).
 2. Import your repository.
-3. **Environment Variables**: Add your Firebase configuration keys:
+3. **Environment Variables**: Add your Firebase and AI configuration keys:
    - `NEXT_PUBLIC_FIREBASE_API_KEY`
    - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
    - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
    - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
    - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
    - `NEXT_PUBLIC_FIREBASE_APP_ID`
-   - `GOOGLE_GENAI_API_KEY`
+   - `GOOGLE_GENAI_API_KEY` (CRITICAL for AI features)
 4. **Deploy**: Vercel will handle the build automatically.
 
 ### 3. CRITICAL: Fix Login Errors (400 Bad Request)
