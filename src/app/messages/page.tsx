@@ -37,7 +37,12 @@ function ConversationItem({ conversation, currentUser, activePartnerId, onSelect
   onSelect: (id: string) => void 
 }) {
   const db = useFirestore();
-  const partnerId = conversation.participants.find((p: string) => p !== currentUser.uid);
+  const partnerId = useMemo(() => {
+    return Array.isArray(conversation.participants) 
+      ? conversation.participants.find((p: string) => p !== currentUser.uid)
+      : null;
+  }, [conversation.participants, currentUser.uid]);
+
   const [partner, setPartner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -71,10 +76,11 @@ function ConversationItem({ conversation, currentUser, activePartnerId, onSelect
   const isSelected = activePartnerId === partnerId;
 
   if (loading) return <div className="h-16 bg-muted/20 animate-pulse rounded-lg m-1" />;
+  if (!partnerId) return null;
 
   return (
     <button
-      onClick={() => onSelect(partnerId!)}
+      onClick={() => onSelect(partnerId)}
       className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all hover:bg-secondary ${isSelected ? 'bg-secondary ring-1 ring-primary/20 shadow-sm' : ''}`}
     >
       <Avatar className="h-10 w-10 border-2 border-background shadow-sm">

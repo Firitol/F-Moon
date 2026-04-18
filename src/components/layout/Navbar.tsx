@@ -2,7 +2,20 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Home, Compass, PlusSquare, User, Bell, Search, Briefcase, MessageSquare, LogOut } from 'lucide-react';
+import { 
+  Home, 
+  Compass, 
+  PlusSquare, 
+  User, 
+  Bell, 
+  Search, 
+  Briefcase, 
+  MessageSquare, 
+  LogOut, 
+  Settings, 
+  Shield, 
+  Lock 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/layout/Logo';
@@ -11,6 +24,15 @@ import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { collection, query, where } from 'firebase/firestore';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function Navbar() {
   const { user } = useUser();
@@ -115,25 +137,61 @@ export function Navbar() {
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full border-2 border-background animate-pulse" />
             )}
           </Link>
-          <Link href="/profile" className="text-muted-foreground hover:text-primary transition-colors" title="My Profile">
-            <User className="w-6 h-6" />
-          </Link>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full overflow-hidden w-8 h-8 p-0">
+                <Avatar className="w-full h-full">
+                  <AvatarImage src={user?.photoURL || ''} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
+                    {user?.displayName?.[0] || <User className="w-4 h-4" />}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 mt-2">
+              <DropdownMenuLabel className="font-headline">My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/profile" className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>View Profile</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/business/settings" className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/business/settings" className="cursor-pointer">
+                  <Lock className="mr-2 h-4 w-4" />
+                  <span>Privacy Settings</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/business/settings" className="cursor-pointer">
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>Security</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Logout</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <div className="h-6 w-px bg-border mx-2" />
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-muted-foreground hover:text-destructive transition-colors"
-            onClick={handleLogout}
-            title="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
           <Button variant="default" className="rounded-full bg-primary hover:bg-primary/90 px-6 h-9 font-bold" asChild>
             <Link href="/create">Post</Link>
           </Button>
         </div>
       </nav>
 
+      {/* Mobile Header */}
       <header className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b z-50 h-14 flex md:hidden items-center justify-between px-4">
         <Link href="/">
           <Logo iconClassName="w-8 h-8" />
@@ -155,6 +213,7 @@ export function Navbar() {
         </div>
       </header>
 
+      {/* Mobile Nav */}
       <nav className="fixed bottom-0 w-full bg-background/95 backdrop-blur-md border-t z-50 h-16 flex md:hidden items-center justify-around px-2 pb-safe">
         <Link href="/" className="p-2 text-muted-foreground active:text-primary transition-colors">
           <Home className="w-6 h-6" />
