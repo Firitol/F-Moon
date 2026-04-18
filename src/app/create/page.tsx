@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -10,7 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ImagePlus, MessageSquare, Briefcase, Loader2, Sparkles, X, FileVideo } from 'lucide-react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from '@/components/ui/dialog';
+import { Slider } from '@/components/ui/slider';
+import { ImagePlus, MessageSquare, Briefcase, Loader2, Sparkles, X, FileVideo, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { suggestPostCaption } from '@/ai/flows/suggest-post-caption';
 import Image from 'next/image';
@@ -23,8 +30,14 @@ export default function CreatePage() {
   
   const [activeTab, setActiveTab] = useState('post');
   const [content, setContent] = useState('');
+  
+  // Media states
+  const [pendingMedia, setPendingMedia] = useState<string | null>(null);
   const [mediaUrl, setMediaUrl] = useState('');
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const [zoom, setZoom] = useState(100);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
 
@@ -33,10 +46,28 @@ export default function CreatePage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setMediaUrl(reader.result as string);
-        setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
+        const result = reader.result as string;
+        const type = file.type.startsWith('video/') ? 'video' : 'image';
+        
+        if (type === 'image') {
+          setPendingMedia(result);
+          setIsAdjusting(true);
+        } else {
+          setMediaUrl(result);
+          setMediaType('video');
+        }
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleApprovePhoto = () => {
+    if (pendingMedia) {
+      setMediaUrl(pendingMedia);
+      setMediaType('image');
+      setPendingMedia(null);
+      setIsAdjusting(false);
+      toast({ title: "Photo Approved", description: "Image attached successfully." });
     }
   };
 
@@ -89,7 +120,7 @@ export default function CreatePage() {
   };
 
   return (
-    <div className="min-h-screen pb-20 md:pt-20">
+    <div className="min-h-screen pb-20 md:pt-20 bg-secondary/10">
       <Navbar />
       <main className="max-w-2xl mx-auto p-4">
         <Card className="border-none shadow-xl">
@@ -114,13 +145,25 @@ export default function CreatePage() {
                       {mediaType === 'video' ? (
                         <video src={mediaUrl} controls className="w-full h-full object-cover" />
                       ) : (
-                        <Image src={mediaUrl} alt="Upload preview" fill className="object-cover" unoptimized />
+                        <div className="relative w-full h-full">
+                           <Image 
+                            src={mediaUrl} 
+                            alt="Upload preview" 
+                            fill 
+                            className="object-cover" 
+                            unoptimized 
+                            style={{ transform: `scale(${zoom / 100})` }}
+                           />
+                           <div className="absolute top-2 left-2 bg-green-600 text-white p-1 rounded-full shadow-lg">
+                             <CheckCircle2 className="w-5 h-5" />
+                           </div>
+                        </div>
                       )}
                       <Button 
                         size="icon" 
                         variant="destructive" 
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                        onClick={() => { setMediaUrl(''); setMediaType(null); }}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 rounded-full"
+                        onClick={() => { setMediaUrl(''); setMediaType(null); setZoom(100); }}
                       >
                         <X className="w-4 h-4" />
                       </Button>
@@ -141,7 +184,7 @@ export default function CreatePage() {
                           onChange={handleFileChange} 
                         />
                         <Button variant="secondary" size="sm" asChild>
-                          <label htmlFor="file-upload" className="cursor-pointer">
+                          <label htmlFor="file-upload" className="cursor-pointer font-bold">
                             Choose Photo or Video
                           </label>
                         </Button>
@@ -157,8 +200,8 @@ export default function CreatePage() {
                       variant="ghost" 
                       size="sm" 
                       onClick={handleSuggestCaption}
-                      disabled={isSuggesting || (mediaType === 'video')}
-                      className="text-primary hover:text-primary hover:bg-primary/10"
+                      disabled={isSuggesting || (mediaType === 'video') || !mediaUrl}
+                      className="text-primary hover:text-primary hover:bg-primary/10 font-bold"
                     >
                       {isSuggesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
                       {mediaType === 'video' ? 'AI Suggest (Photos only)' : 'AI Suggest'}
@@ -175,11 +218,11 @@ export default function CreatePage() {
             </Tabs>
           </CardContent>
           <CardFooter className="flex gap-3 border-t p-6">
-            <Button variant="outline" className="flex-1" onClick={() => router.back()}>Cancel</Button>
+            <Button variant="outline" className="flex-1 font-bold" onClick={() => router.back()}>Cancel</Button>
             <Button 
               className="flex-1 bg-primary font-bold" 
               onClick={handleCreatePost}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !mediaUrl}
             >
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Publish Post
@@ -187,6 +230,51 @@ export default function CreatePage() {
           </CardFooter>
         </Card>
       </main>
+
+      {/* Adjustment and Approval Modal */}
+      <Dialog open={isAdjusting} onOpenChange={setIsAdjusting}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-headline">Adjust Photo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="relative aspect-square w-full bg-muted rounded-xl overflow-hidden border">
+              {pendingMedia && (
+                <Image 
+                  src={pendingMedia} 
+                  alt="Adjustment preview" 
+                  fill 
+                  className="object-cover transition-transform" 
+                  style={{ transform: `scale(${zoom / 100})` }}
+                  unoptimized 
+                />
+              )}
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <span>Zoom</span>
+                <span>{zoom}%</span>
+              </div>
+              <Slider 
+                value={[zoom]} 
+                onValueChange={(v) => setZoom(v[0])} 
+                min={100} 
+                max={200} 
+                step={1} 
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="ghost" onClick={() => { setIsAdjusting(false); setPendingMedia(null); }} className="font-bold">
+              Cancel
+            </Button>
+            <Button onClick={handleApprovePhoto} className="bg-primary font-bold flex-1">
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
