@@ -138,7 +138,7 @@ export default function AuthPage() {
                       <Input 
                         type="email"
                         placeholder="Email address" 
-                        autoComplete="email"
+                        autoComplete="username email"
                         className="pl-10 h-11" 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}

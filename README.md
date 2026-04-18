@@ -38,13 +38,14 @@ git push -u origin main
    - `GOOGLE_GENAI_API_KEY`
 4. **Deploy**: Vercel will handle the build automatically.
 
-### 3. IMPORTANT: Firebase Auth Setup
-To fix login errors (`400 Bad Request`) on Vercel:
+### 3. CRITICAL: Fix Login Errors (400 Bad Request)
+If you see a `400 Bad Request` or `Unauthorized Domain` error when trying to log in on Vercel:
 1. Go to the [Firebase Console](https://console.firebase.google.com/).
 2. Select your project.
 3. Navigate to **Authentication** > **Settings** > **Authorized Domains**.
 4. Click **Add Domain**.
-5. Add your Vercel deployment domain (e.g., `f-moon-*.vercel.app`).
+5. Add your specific Vercel deployment domain (e.g., `f-moon-*.vercel.app`).
+6. Also add your custom production domain if you have one.
 
 ## Key Features
 

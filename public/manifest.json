@@ -4,7 +4,7 @@
   "description": "Connect with local Ethiopian businesses and community.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#FDF5EA",
   "theme_color": "#CD7B15",
   "icons": [
     {
