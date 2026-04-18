@@ -9,7 +9,6 @@ F-Moon is a modern, real-time social platform designed for the Ethiopian communi
 - **Database**: Firebase Firestore (Real-time)
 - **Auth**: Firebase Authentication
 - **AI**: Genkit (Google Gemini)
-- **Deployment**: Optimized for Vercel
 
 ## Deployment Instructions
 
@@ -28,7 +27,7 @@ git push -u origin main
 ### 2. Connect to Vercel
 1. Go to the [Vercel Dashboard](https://vercel.com/new).
 2. Import your repository.
-3. **Environment Variables**: Add your Firebase and AI configuration keys:
+3. **Environment Variables**: Add your configuration keys:
    - `NEXT_PUBLIC_FIREBASE_API_KEY`
    - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
    - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
@@ -36,16 +35,13 @@ git push -u origin main
    - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
    - `NEXT_PUBLIC_FIREBASE_APP_ID`
    - `GOOGLE_GENAI_API_KEY` (CRITICAL for AI features)
-4. **Deploy**: Vercel will handle the build automatically.
 
-### 3. CRITICAL: Fix Login Errors (400 Bad Request)
-If you see a `400 Bad Request` or `Unauthorized Domain` error when trying to log in on Vercel:
+### 3. CRITICAL: Authorize Domain
+If you see a `400 Bad Request` or `Unauthorized Domain` error during login:
 1. Go to the [Firebase Console](https://console.firebase.google.com/).
 2. Select your project.
 3. Navigate to **Authentication** > **Settings** > **Authorized Domains**.
-4. Click **Add Domain**.
-5. Add your specific Vercel deployment domain (e.g., `f-moon-*.vercel.app`).
-6. Also add your custom production domain if you have one.
+4. Click **Add Domain** and add your Vercel URL (e.g., `f-moon-*.vercel.app`).
 
 ## Key Features
 
@@ -53,4 +49,3 @@ If you see a `400 Bad Request` or `Unauthorized Domain` error when trying to log
 - **Business Discovery**: Explore verified Ethiopian businesses by category.
 - **Direct Messaging**: Chat in real-time with friends and business owners.
 - **AI Tools**: Generate promotional text and post captions using Gemini.
-- **Admin Panel**: Moderation tools for users, businesses, and content.

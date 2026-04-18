@@ -1,10 +1,10 @@
 {
-  "name": "F-Moon Ethiopia",
+  "name": "F-Moon | Ethiopian Social",
   "short_name": "F-Moon",
-  "description": "Ethiopian Social & Business Discovery",
+  "description": "Discover local Ethiopian businesses and community.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#FDF5EA",
   "theme_color": "#CD7B15",
   "icons": [
     {
