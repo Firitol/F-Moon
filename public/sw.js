@@ -1,13 +1,13 @@
-// Minimal Service Worker for PWA compliance
+// Basic Service Worker for PWA compliance
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  console.log('Service Worker installing.');
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
+  console.log('Service Worker activating.');
 });
 
 self.addEventListener('fetch', (event) => {
-  // Simple pass-through for now
+  // Simple pass-through fetch listener
   event.respondWith(fetch(event.request));
 });

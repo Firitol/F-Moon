@@ -14,6 +14,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
+  DialogDescription,
   DialogFooter 
 } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
@@ -236,6 +237,7 @@ export default function CreatePage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-headline">Adjust Photo</DialogTitle>
+            <DialogDescription>Zoom and position your photo before adding it to your post.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="relative aspect-square w-full bg-muted rounded-xl overflow-hidden border">

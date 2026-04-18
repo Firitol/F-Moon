@@ -14,6 +14,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
+  DialogDescription,
   DialogTrigger,
   DialogFooter
 } from '@/components/ui/dialog';
@@ -142,13 +143,21 @@ export default function CurrentUserProfilePage() {
     if (!pendingPhoto || !db || !user) return;
     setIsUpdating(true);
     try {
-      // 1. Update Firestore Profile
+      // 1. Update Firestore Profile (This is our primary source of truth)
       await updateDoc(doc(db, 'public_user_profiles', user.uid), {
         profilePictureUrl: pendingPhoto
       });
       
-      // 2. Update Firebase Auth Profile (for Navbar/Global sync)
-      await updateProfile(user, { photoURL: pendingPhoto });
+      // 2. Update Firebase Auth Profile (Optional, for redundancy)
+      // Note: Large base64 strings can cause 400 errors in updateProfile.
+      // We wrap this in a separate try-catch to ensure Firestore update persists even if Auth fails.
+      try {
+        if (pendingPhoto.length < 50000) { // Only update Auth if string is reasonably small
+          await updateProfile(user, { photoURL: pendingPhoto });
+        }
+      } catch (authErr) {
+        console.warn('Auth profile sync failed (string might be too large), but Firestore was updated.', authErr);
+      }
       
       toast({ title: "Success", description: "Profile photo updated!" });
       setIsAdjustingPhoto(false);
@@ -240,6 +249,7 @@ export default function CurrentUserProfilePage() {
                   <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                       <DialogTitle className="font-headline">Edit Profile</DialogTitle>
+                      <DialogDescription>Update your public profile information below.</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
@@ -412,6 +422,7 @@ export default function CurrentUserProfilePage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-headline">Adjust Profile Photo</DialogTitle>
+            <DialogDescription>Zoom and frame your new profile picture before saving.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="relative aspect-square w-64 mx-auto bg-muted rounded-full overflow-hidden border-4 border-primary/10">
