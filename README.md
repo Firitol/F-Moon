@@ -46,3 +46,4 @@ git push -u origin main
 - **Direct Messaging**: Chat in real-time with friends and business owners.
 - **AI Tools**: Generate promotional text and post captions using Gemini.
 - **Admin Panel**: Moderation tools for users, businesses, and content.
+# ETH-CONNECT
