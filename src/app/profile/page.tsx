@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection, query, where, limit, setDoc, updateDoc } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
 import { Navbar } from '@/components/layout/Navbar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -19,14 +20,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Grid, Bookmark, Settings, LogOut, PlayCircle, Camera, Loader2, MapPin, Heart, Archive } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Grid, Bookmark, Settings, LogOut, PlayCircle, Camera, Loader2, MapPin, Heart, Archive, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { PostCard } from '@/components/feed/PostCard';
 
 export default function CurrentUserProfilePage() {
   const { user, isUserLoading } = useUser();
@@ -43,6 +44,11 @@ export default function CurrentUserProfilePage() {
     bio: '',
     location: ''
   });
+
+  // Photo adjustment states
+  const [isAdjustingPhoto, setIsAdjustingPhoto] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
+  const [photoZoom, setPhotoZoom] = useState(100);
 
   const profileRef = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -71,7 +77,10 @@ export default function CurrentUserProfilePage() {
           location: 'Addis Ababa',
           userId: user.uid,
           id: user.uid,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          followerCount: 0,
+          followingCount: 0,
+          friendCount: 0
         };
         await setDoc(doc(db, 'public_user_profiles', user.uid), newProfile);
       };
@@ -79,7 +88,6 @@ export default function CurrentUserProfilePage() {
     }
   }, [user, isUserLoading, profile, db]);
 
-  // Fetch all user posts for filtering locally
   const postsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'posts'), where('authorId', '==', user.uid), limit(100));
@@ -120,20 +128,35 @@ export default function CurrentUserProfilePage() {
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && db && user) {
+    if (file) {
       const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result as string;
-        try {
-          await updateDoc(doc(db, 'public_user_profiles', user.uid), {
-            profilePictureUrl: base64String
-          });
-          toast({ title: "Success", description: "Profile photo updated!" });
-        } catch (error: any) {
-          toast({ title: "Error", description: error.message, variant: "destructive" });
-        }
+      reader.onloadend = () => {
+        setPendingPhoto(reader.result as string);
+        setIsAdjustingPhoto(true);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleApprovePhoto = async () => {
+    if (!pendingPhoto || !db || !user) return;
+    setIsUpdating(true);
+    try {
+      // 1. Update Firestore Profile
+      await updateDoc(doc(db, 'public_user_profiles', user.uid), {
+        profilePictureUrl: pendingPhoto
+      });
+      
+      // 2. Update Firebase Auth Profile (for Navbar/Global sync)
+      await updateProfile(user, { photoURL: pendingPhoto });
+      
+      toast({ title: "Success", description: "Profile photo updated!" });
+      setIsAdjustingPhoto(false);
+      setPendingPhoto(null);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -146,6 +169,9 @@ export default function CurrentUserProfilePage() {
         bio: editData.bio,
         location: editData.location
       });
+      if (editData.name !== user.displayName) {
+        await updateProfile(user, { displayName: editData.name });
+      }
       toast({ title: "Success", description: "Profile updated successfully!" });
       setIsEditDialogOpen(false);
     } catch (error: any) {
@@ -194,7 +220,7 @@ export default function CurrentUserProfilePage() {
                 </AvatarFallback>
                 <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <Camera className="text-white w-8 h-8 mb-1" />
-                  <span className="text-[10px] text-white font-bold uppercase tracking-widest">Update</span>
+                  <span className="text-[10px] text-white font-bold uppercase tracking-widest">Change</span>
                 </div>
               </Avatar>
             </div>
@@ -380,6 +406,52 @@ export default function CurrentUserProfilePage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Profile Photo Adjustment Dialog */}
+      <Dialog open={isAdjustingPhoto} onOpenChange={setIsAdjustingPhoto}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-headline">Adjust Profile Photo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="relative aspect-square w-64 mx-auto bg-muted rounded-full overflow-hidden border-4 border-primary/10">
+              {pendingPhoto && (
+                <Image 
+                  src={pendingPhoto} 
+                  alt="Adjustment preview" 
+                  fill 
+                  className="object-cover transition-transform" 
+                  style={{ transform: `scale(${photoZoom / 100})` }}
+                  unoptimized 
+                />
+              )}
+            </div>
+            
+            <div className="space-y-4 px-4">
+              <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <span>Zoom</span>
+                <span>{photoZoom}%</span>
+              </div>
+              <Slider 
+                value={[photoZoom]} 
+                onValueChange={(v) => setPhotoZoom(v[0])} 
+                min={100} 
+                max={200} 
+                step={1} 
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="ghost" onClick={() => { setIsAdjustingPhoto(false); setPendingPhoto(null); }} className="font-bold flex-1" disabled={isUpdating}>
+              Cancel
+            </Button>
+            <Button onClick={handleApprovePhoto} className="bg-primary font-bold flex-1" disabled={isUpdating}>
+              {isUpdating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
