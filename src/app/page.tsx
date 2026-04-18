@@ -3,8 +3,8 @@
 import { useMemo } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { PostCard } from '@/components/feed/PostCard';
-import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
-import { collection, query, limit } from 'firebase/firestore';
+import { useCollection, useMemoFirebase, useFirestore, useUser, useDoc } from '@/firebase';
+import { collection, query, limit, doc } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { PromotionGenerator } from '@/components/business/PromotionGenerator';
@@ -17,6 +17,13 @@ import { SocialActions } from '@/components/social/SocialActions';
 export default function Home() {
   const { user } = useUser();
   const db = useFirestore();
+
+  const profileRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, 'public_user_profiles', user.uid);
+  }, [db, user]);
+
+  const { data: profile } = useDoc(profileRef);
 
   // Fetch posts without complex ordering to avoid index requirements
   const postsQuery = useMemoFirebase(() => {
@@ -80,12 +87,12 @@ export default function Home() {
               <CardContent className="p-4 flex items-center gap-4">
                 <Link href="/profile">
                   <Avatar className="h-14 w-14 ring-2 ring-primary/10">
-                    <AvatarImage src={user.photoURL || ''} />
-                    <AvatarFallback>{user.displayName?.[0] || 'U'}</AvatarFallback>
+                    <AvatarImage src={profile?.profilePictureUrl || user.photoURL || ''} />
+                    <AvatarFallback>{profile?.name?.[0] || user.displayName?.[0] || 'U'}</AvatarFallback>
                   </Avatar>
                 </Link>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm truncate">{user.displayName || 'Anonymous User'}</p>
+                  <p className="font-bold text-sm truncate">{profile?.name || user.displayName || 'Anonymous User'}</p>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">My Account</p>
                 </div>
                 <Button variant="ghost" size="sm" asChild className="text-primary font-bold">

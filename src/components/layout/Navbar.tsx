@@ -19,11 +19,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/layout/Logo';
-import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +45,13 @@ export function Navbar() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const profileRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, 'public_user_profiles', user.uid);
+  }, [db, user]);
+
+  const { data: profile } = useDoc(profileRef);
 
   const notifsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -142,7 +149,7 @@ export function Navbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full overflow-hidden w-8 h-8 p-0">
                 <Avatar className="w-full h-full">
-                  <AvatarImage src={user?.photoURL || ''} />
+                  <AvatarImage src={profile?.profilePictureUrl || user?.photoURL || ''} />
                   <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
                     {user?.displayName?.[0] || <User className="w-4 h-4" />}
                   </AvatarFallback>

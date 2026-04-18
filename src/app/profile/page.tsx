@@ -56,7 +56,7 @@ export default function CurrentUserProfilePage() {
     return doc(db, 'public_user_profiles', user.uid);
   }, [db, user]);
 
-  const { data: profile } = useDoc(profileRef);
+  const { data: profile, isLoading: isProfileLoading } = useDoc(profileRef);
 
   useEffect(() => {
     if (profile) {
@@ -69,7 +69,9 @@ export default function CurrentUserProfilePage() {
   }, [profile]);
 
   useEffect(() => {
-    if (user && !isUserLoading && !profile && db) {
+    // CRITICAL: We MUST wait for both user and the profile doc to finish loading
+    // before we decide to initialize a new profile record.
+    if (user && !isUserLoading && !isProfileLoading && !profile && db) {
       const initProfile = async () => {
         const newProfile = {
           name: user.displayName || 'User',
@@ -83,11 +85,11 @@ export default function CurrentUserProfilePage() {
           followingCount: 0,
           friendCount: 0
         };
-        await setDoc(doc(db, 'public_user_profiles', user.uid), newProfile);
+        await setDoc(doc(db, 'public_user_profiles', user.uid), newProfile, { merge: true });
       };
       initProfile();
     }
-  }, [user, isUserLoading, profile, db]);
+  }, [user, isUserLoading, isProfileLoading, profile, db]);
 
   const postsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -144,20 +146,14 @@ export default function CurrentUserProfilePage() {
     setIsUpdating(true);
     try {
       // 1. Update Firestore Profile (This is our primary source of truth)
-      await updateDoc(doc(db, 'public_user_profiles', user.uid), {
-        profilePictureUrl: pendingPhoto
-      });
+      // Using setDoc with merge: true for maximum resilience
+      await setDoc(doc(db, 'public_user_profiles', user.uid), {
+        profilePictureUrl: pendingPhoto,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
       
-      // 2. Update Firebase Auth Profile (Optional, for redundancy)
-      // Note: Large base64 strings can cause 400 errors in updateProfile.
-      // We wrap this in a separate try-catch to ensure Firestore update persists even if Auth fails.
-      try {
-        if (pendingPhoto.length < 50000) { // Only update Auth if string is reasonably small
-          await updateProfile(user, { photoURL: pendingPhoto });
-        }
-      } catch (authErr) {
-        console.warn('Auth profile sync failed (string might be too large), but Firestore was updated.', authErr);
-      }
+      // We skip updateProfile(user, ...) to avoid 400 Errors from base64 string size limits
+      // All other components now use the Firestore profile as the source of truth for the avatar.
       
       toast({ title: "Success", description: "Profile photo updated!" });
       setIsAdjustingPhoto(false);
@@ -422,7 +418,7 @@ export default function CurrentUserProfilePage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-headline">Adjust Profile Photo</DialogTitle>
-            <DialogDescription>Zoom and frame your new profile picture before saving.</DialogDescription>
+            <DialogDescription>Zoom and frame your new profile picture before saving to your F-Moon profile.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="relative aspect-square w-64 mx-auto bg-muted rounded-full overflow-hidden border-4 border-primary/10">
