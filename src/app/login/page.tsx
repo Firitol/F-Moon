@@ -8,7 +8,8 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signInAnonymously,
-  updateProfile 
+  updateProfile,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ export default function AuthPage() {
   
   // Form states
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [location, setLocation] = useState('');
@@ -48,6 +50,34 @@ export default function AuthPage() {
     } catch (error: any) {
       toast({ 
         title: "Login Failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({ 
+        title: "Email Required", 
+        description: "Please enter your email address to reset your password.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({ 
+        title: "Reset Link Sent", 
+        description: "Check your inbox for password reset instructions." 
+      });
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
         description: error.message, 
         variant: "destructive" 
       });
@@ -163,7 +193,6 @@ export default function AuthPage() {
                     size="sm" 
                     className="flex-1 rounded-md transition-all h-8 text-xs"
                     onClick={() => setMethod('phone')}
-                    disabled
                   >
                     <Phone className="w-3.5 h-3.5 mr-2" /> Phone
                   </Button>
@@ -171,18 +200,32 @@ export default function AuthPage() {
 
                 <form onSubmit={handleEmailLogin} className="space-y-4">
                   <div className="space-y-1">
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        type="email"
-                        placeholder="Email address" 
-                        autoComplete="username email"
-                        className="pl-10 h-11" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
-                    </div>
+                    {method === 'email' ? (
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          type="email"
+                          placeholder="Email address" 
+                          autoComplete="username email"
+                          className="pl-10 h-11" 
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          type="tel"
+                          placeholder="+251 ..." 
+                          className="pl-10 h-11" 
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          required
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <div className="relative">
@@ -198,7 +241,14 @@ export default function AuthPage() {
                       />
                     </div>
                     <div className="text-right">
-                      <button type="button" className="text-[10px] text-primary font-bold hover:underline uppercase tracking-wider">Forgot password?</button>
+                      <button 
+                        type="button" 
+                        onClick={handleForgotPassword}
+                        className="text-[10px] text-primary font-bold hover:underline uppercase tracking-wider disabled:opacity-50"
+                        disabled={isLoading}
+                      >
+                        Forgot password?
+                      </button>
                     </div>
                   </div>
                   
@@ -210,6 +260,11 @@ export default function AuthPage() {
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Sign In"}
                     {!isLoading && <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />}
                   </Button>
+                  {method === 'phone' && (
+                    <p className="text-[10px] text-center text-muted-foreground italic">
+                      Note: Phone verification requires additional account setup.
+                    </p>
+                  )}
                 </form>
               </TabsContent>
 
