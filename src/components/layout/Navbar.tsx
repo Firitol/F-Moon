@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -25,7 +24,6 @@ export function Navbar() {
     setMounted(true);
   }, []);
 
-  // Simplified queries to avoid composite index requirements
   const notifsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, 'notifications'), where('recipientId', '==', user.uid));
@@ -68,7 +66,6 @@ export function Navbar() {
 
   return (
     <>
-      {/* Desktop Navbar */}
       <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b z-50 h-16 hidden md:flex items-center justify-between px-8">
         <Link href="/">
           <Logo />
@@ -101,7 +98,7 @@ export function Navbar() {
             title="Messages"
           >
             <MessageSquare className="w-6 h-6" />
-            {hasUnreadMessages && (
+            {mounted && hasUnreadMessages && (
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full border-2 border-background animate-pulse" />
             )}
           </Link>
@@ -114,7 +111,7 @@ export function Navbar() {
             title="Notifications"
           >
             <Bell className="w-6 h-6" />
-            {hasUnreadNotifs && (
+            {mounted && hasUnreadNotifs && (
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full border-2 border-background animate-pulse" />
             )}
           </Link>
@@ -137,7 +134,6 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Top Header */}
       <header className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b z-50 h-14 flex md:hidden items-center justify-between px-4">
         <Link href="/">
           <Logo iconClassName="w-8 h-8" />
@@ -152,14 +148,13 @@ export function Navbar() {
             <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
               <MessageSquare className="w-5 h-5" />
             </Button>
-            {hasUnreadMessages && (
+            {mounted && hasUnreadMessages && (
               <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full border-2 border-background animate-pulse" />
             )}
           </Link>
         </div>
       </header>
 
-      {/* Mobile Bottom Tab Bar */}
       <nav className="fixed bottom-0 w-full bg-background/95 backdrop-blur-md border-t z-50 h-16 flex md:hidden items-center justify-around px-2 pb-safe">
         <Link href="/" className="p-2 text-muted-foreground active:text-primary transition-colors">
           <Home className="w-6 h-6" />
@@ -174,7 +169,7 @@ export function Navbar() {
         </Link>
         <Link href="/notifications" className="p-2 text-muted-foreground active:text-primary transition-colors relative">
           <Bell className="w-6 h-6" />
-          {hasUnreadNotifs && (
+          {mounted && hasUnreadNotifs && (
             <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-background animate-pulse" />
           )}
         </Link>

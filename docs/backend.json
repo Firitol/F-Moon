@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -162,6 +161,25 @@
         "type": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "Like": {
+      "title": "Like",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "userId": { "type": "string" },
+        "postData": { "type": "object" },
+        "createdAt": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -179,6 +197,8 @@
     "/conversations/{conversationId}": { "schema": "Conversation", "description": "Chat conversations." },
     "/messages/{messageId}": { "schema": "Message", "description": "Individual chat messages." },
     "/notifications/{notifId}": { "schema": "Notification", "description": "User notifications." },
-    "/payments/{payId}": { "schema": "Payment", "description": "Transaction logs." }
+    "/payments/{payId}": { "schema": "Payment", "description": "Transaction logs." },
+    "/post_likes/{likeId}": { "schema": "Like", "description": "Track post likes." },
+    "/bookmarks/{bookmarkId}": { "schema": "Bookmark", "description": "User saved posts." }
   }
 }

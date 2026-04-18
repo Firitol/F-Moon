@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -17,7 +16,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 export default function PostDetailPage() {
   const params = useParams();
-  const id = params.id as string;
+  const id = params?.id as string;
   const { user: currentUser } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -46,7 +45,6 @@ export default function PostDetailPage() {
 
   const { data: rawComments, isLoading: isCommentsLoading } = useCollection(commentsQuery);
 
-  // Sort comments client-side to avoid index requirement for now
   const comments = useMemo(() => {
     if (!rawComments) return [];
     return [...rawComments].sort((a, b) => {
@@ -79,6 +77,19 @@ export default function PostDetailPage() {
       updateDocumentNonBlocking(doc(db, 'posts', id), {
         commentsCount: increment(1)
       });
+
+      if (post && post.authorId !== currentUser.uid) {
+        addDocumentNonBlocking(collection(db, 'notifications'), {
+          recipientId: post.authorId,
+          actorId: currentUser.uid,
+          actorName: currentUser.displayName || 'Someone',
+          actorAvatar: currentUser.photoURL || '',
+          type: 'comment',
+          message: 'commented on your post',
+          read: false,
+          createdAt: new Date().toISOString()
+        });
+      }
 
       setNewComment('');
       toast({ title: "Comment added!" });

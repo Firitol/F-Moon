@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -19,7 +18,6 @@ export default function NotificationsPage() {
     setMounted(true);
   }, []);
 
-  // Simplified query to avoid index requirements
   const notificationsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
@@ -30,7 +28,6 @@ export default function NotificationsPage() {
 
   const { data: rawNotifications, isLoading } = useCollection(notificationsQuery);
 
-  // Client-side sorting and limiting
   const notifications = useMemo(() => {
     if (!rawNotifications) return [];
     return [...rawNotifications].sort((a, b) => {

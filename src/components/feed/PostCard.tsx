@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -22,6 +21,7 @@ import { doc, increment, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
 
 interface PostCardProps {
   post: any;
@@ -38,7 +38,6 @@ export function PostCard({ post, priority = false }: PostCardProps) {
     setMounted(true);
   }, []);
   
-  // Check if user liked this post
   const likeRef = useMemoFirebase(() => {
     if (!db || !user || !post.id) return null;
     return doc(db, 'post_likes', `${post.id}_${user.uid}`);
@@ -47,7 +46,6 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   const { data: likeData } = useDoc(likeRef);
   const isLiked = !!likeData;
 
-  // Check if user bookmarked this post
   const bookmarkRef = useMemoFirebase(() => {
     if (!db || !user || !post.id) return null;
     return doc(db, 'bookmarks', `${post.id}_${user.uid}`);
@@ -76,7 +74,6 @@ export function PostCard({ post, priority = false }: PostCardProps) {
       
       updateDocumentNonBlocking(postRef, { likesCount: increment(1) });
       
-      // Notify author
       if (post.authorId !== user.uid) {
         addDocumentNonBlocking(collection(db, 'notifications'), {
           recipientId: post.authorId,
@@ -121,21 +118,24 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   const handleShare = async () => {
     const url = `${window.location.origin}/post/${post.id}`;
     
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
         await navigator.share({
-          title: 'Check out this post on F-Moon',
+          title: 'F-Moon Ethiopia',
           text: post.content,
           url: url,
         });
-      } catch (err) {
-        // Fallback to clipboard if share is aborted or blocked
-        navigator.clipboard.writeText(url);
-        toast({ title: "Link Copied", description: "Post link copied to your clipboard!" });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Link Copied", description: "Share it with your friends!" });
       }
-    } else {
-      navigator.clipboard.writeText(url);
-      toast({ title: "Link Copied", description: "Post link copied to your clipboard!" });
+    } catch (err) {
+      // Fallback for failed share attempts or restricted permissions
+      navigator.clipboard.writeText(url).then(() => {
+        toast({ title: "Link Copied", description: "Share it with your friends!" });
+      }).catch(() => {
+        toast({ title: "Error", description: "Failed to copy link.", variant: "destructive" });
+      });
     }
   };
 
@@ -159,7 +159,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
               )}
             </div>
             <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
-              {mounted && post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}
+              {mounted && post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : ''}
             </span>
           </div>
         </div>
