@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -139,6 +138,7 @@ export default function AuthPage() {
                       <Input 
                         type="email"
                         placeholder="Email address" 
+                        autoComplete="email"
                         className="pl-10 h-11" 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -152,6 +152,7 @@ export default function AuthPage() {
                       <Input 
                         type="password" 
                         placeholder="Password" 
+                        autoComplete="current-password"
                         className="pl-10 h-11" 
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -180,6 +181,7 @@ export default function AuthPage() {
                     <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input 
                       placeholder="Full Name" 
+                      autoComplete="name"
                       className="pl-10 h-11" 
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
@@ -191,6 +193,7 @@ export default function AuthPage() {
                     <Input 
                       type="email"
                       placeholder="Email address" 
+                      autoComplete="email"
                       className="pl-10 h-11" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -202,6 +205,7 @@ export default function AuthPage() {
                     <Input 
                       type="password" 
                       placeholder="Create Password" 
+                      autoComplete="new-password"
                       className="pl-10 h-11" 
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
