@@ -9,7 +9,9 @@ import {
   createUserWithEmailAndPassword, 
   signInAnonymously,
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -95,11 +97,10 @@ export default function AuthPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Update basic auth profile
       await updateProfile(user, { displayName });
 
-      // Create persistent Firestore profile with extended details
       if (db) {
+        const timestamp = new Date().toISOString();
         await setDoc(doc(db, 'public_user_profiles', user.uid), {
           id: user.uid,
           userId: user.uid,
@@ -108,13 +109,12 @@ export default function AuthPage() {
           location: location || 'Addis Ababa, Ethiopia',
           bio: bio || 'Welcome to my F-Moon profile!',
           profilePictureUrl: '',
-          createdAt: new Date().toISOString(),
+          createdAt: timestamp,
           followerCount: 0,
           followingCount: 0,
           friendCount: 0
         }, { merge: true });
 
-        // Also create a private user document for admin purposes
         await setDoc(doc(db, 'users', user.uid), {
           id: user.uid,
           name: displayName,
@@ -122,8 +122,8 @@ export default function AuthPage() {
           role: 'NormalUser',
           status: 'active',
           avatar: '',
-          createdAt: new Date().toISOString()
-        });
+          createdAt: timestamp
+        }, { merge: true });
       }
 
       toast({ title: "Account created!", description: "Welcome to F-Moon community." });
@@ -131,6 +131,53 @@ export default function AuthPage() {
     } catch (error: any) {
       toast({ 
         title: "Registration Failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      if (db) {
+        const timestamp = new Date().toISOString();
+        await setDoc(doc(db, 'public_user_profiles', user.uid), {
+          id: user.uid,
+          userId: user.uid,
+          name: user.displayName || 'User',
+          email: user.email,
+          location: 'Addis Ababa, Ethiopia',
+          bio: 'Welcome to my F-Moon profile!',
+          profilePictureUrl: user.photoURL || '',
+          createdAt: timestamp,
+          followerCount: 0,
+          followingCount: 0,
+          friendCount: 0
+        }, { merge: true });
+
+        await setDoc(doc(db, 'users', user.uid), {
+          id: user.uid,
+          name: user.displayName || 'User',
+          email: user.email,
+          role: 'NormalUser',
+          status: 'active',
+          avatar: user.photoURL || '',
+          createdAt: timestamp
+        }, { merge: true });
+      }
+
+      toast({ title: "Welcome!", description: `Signed in as ${user.displayName}` });
+      router.push('/');
+    } catch (error: any) {
+      toast({ 
+        title: "Google Sign-In Failed", 
         description: error.message, 
         variant: "destructive" 
       });
@@ -260,11 +307,6 @@ export default function AuthPage() {
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Sign In"}
                     {!isLoading && <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />}
                   </Button>
-                  {method === 'phone' && (
-                    <p className="text-[10px] text-center text-muted-foreground italic">
-                      Note: Phone verification requires additional account setup.
-                    </p>
-                  )}
                 </form>
               </TabsContent>
 
@@ -352,8 +394,13 @@ export default function AuthPage() {
               >
                 Guest Access
               </Button>
-              <Button variant="outline" className="w-full border-border hover:bg-secondary/50" disabled>
-                Google
+              <Button 
+                variant="outline" 
+                className="w-full border-border hover:bg-secondary/50" 
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
+              >
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Google"}
               </Button>
             </div>
           </CardFooter>
