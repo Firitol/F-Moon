@@ -1,9 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { PostCard } from '@/components/feed/PostCard';
 import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
-import { collection, query, orderBy, limit, where } from 'firebase/firestore';
+import { collection, query, limit } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { PromotionGenerator } from '@/components/business/PromotionGenerator';
@@ -17,27 +18,35 @@ export default function Home() {
   const { user } = useUser();
   const db = useFirestore();
 
+  // Fetch posts without complex ordering to avoid index requirements
   const postsQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(
-      collection(db, 'posts'), 
-      where('status', '==', 'active'),
-      orderBy('createdAt', 'desc'), 
-      limit(20)
-    );
+    return query(collection(db, 'posts'), limit(50));
   }, [db]);
 
-  const { data: posts, isLoading: isPostsLoading } = useCollection(postsQuery);
+  const { data: rawPosts, isLoading: isPostsLoading } = useCollection(postsQuery);
+
+  // Filter and Sort on the client side for stability
+  const posts = useMemo(() => {
+    if (!rawPosts) return [];
+    return rawPosts
+      .filter(post => post.status === 'active')
+      .sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
+  }, [rawPosts]);
 
   const featuredBizQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collection(db, 'businesses'), where('status', '==', 'active'), limit(10));
+    return query(collection(db, 'businesses'), limit(20));
   }, [db]);
 
   const { data: featuredBiz } = useCollection(featuredBizQuery);
 
   const suggestedBusinesses = featuredBiz
-    ?.filter(biz => biz.ownerId !== user?.uid)
+    ?.filter(biz => biz.status === 'active' && biz.ownerId !== user?.uid)
     .slice(0, 5);
 
   return (

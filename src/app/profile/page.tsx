@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, where, orderBy, limit, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, collection, query, where, limit, setDoc, updateDoc } from 'firebase/firestore';
 import { Navbar } from '@/components/layout/Navbar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -79,43 +79,39 @@ export default function CurrentUserProfilePage() {
     }
   }, [user, isUserLoading, profile, db]);
 
+  // Fetch all user posts for filtering locally
   const postsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    return query(
-      collection(db, 'posts'),
-      where('authorId', '==', user.uid),
-      where('status', '==', 'active'),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
+    return query(collection(db, 'posts'), where('authorId', '==', user.uid), limit(100));
   }, [db, user]);
 
-  const { data: userPosts, isLoading: isPostsLoading } = useCollection(postsQuery);
+  const { data: allUserPosts, isLoading: isPostsLoading } = useCollection(postsQuery);
 
-  const archivedQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return query(
-      collection(db, 'posts'),
-      where('authorId', '==', user.uid),
-      where('status', '==', 'archived'),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
-  }, [db, user]);
+  const userPosts = useMemo(() => {
+    if (!allUserPosts) return [];
+    return allUserPosts
+      .filter(p => p.status === 'active')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [allUserPosts]);
 
-  const { data: archivedPosts, isLoading: isArchivedLoading } = useCollection(archivedQuery);
+  const archivedPosts = useMemo(() => {
+    if (!allUserPosts) return [];
+    return allUserPosts
+      .filter(p => p.status === 'archived')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [allUserPosts]);
 
   const savedQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    return query(
-      collection(db, 'bookmarks'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
+    return query(collection(db, 'bookmarks'), where('userId', '==', user.uid), limit(50));
   }, [db, user]);
 
-  const { data: savedPosts, isLoading: isSavedLoading } = useCollection(savedQuery);
+  const { data: rawSavedPosts, isLoading: isSavedLoading } = useCollection(savedQuery);
+
+  const savedPosts = useMemo(() => {
+    if (!rawSavedPosts) return [];
+    return [...rawSavedPosts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [rawSavedPosts]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -354,14 +350,25 @@ export default function CurrentUserProfilePage() {
           </TabsContent>
 
           <TabsContent value="archived" className="mt-8">
-            {isArchivedLoading ? (
+            {isPostsLoading ? (
                <div className="grid grid-cols-3 gap-1 md:gap-4">
                 {[1, 2, 3].map(i => <div key={i} className="aspect-square bg-muted animate-pulse rounded-md" />)}
               </div>
             ) : archivedPosts?.length ? (
-              <div className="space-y-6">
+              <div className="grid grid-cols-3 gap-1 md:gap-6">
                 {archivedPosts.map((post) => (
-                  <PostCard key={post.id} post={post} />
+                  <Link href={`/post/${post.id}`} key={post.id} className="relative aspect-square group cursor-pointer overflow-hidden rounded-md bg-muted">
+                    {post.imageUrl ? (
+                      <Image src={post.imageUrl} alt="Archived post" fill className="object-cover transition-transform group-hover:scale-110" unoptimized={post.imageUrl.startsWith('data:')} sizes="(max-width: 768px) 33vw, 300px" />
+                    ) : (
+                      <div className="w-full h-full bg-secondary flex items-center justify-center p-2 text-[10px] text-center italic text-muted-foreground">
+                        {post.content}
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 bg-muted/80 backdrop-blur p-1 rounded-full">
+                       <Archive className="w-3 h-3 text-foreground" />
+                    </div>
+                  </Link>
                 ))}
               </div>
             ) : (
