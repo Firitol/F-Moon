@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck, Pencil, Trash2, Archive, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck, Pencil, Trash2, Archive, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface PostCardProps {
   post: any;
@@ -173,6 +181,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
   };
 
   const isAuthor = user?.uid === post.authorId;
+  const images = post.imageUrls || (post.imageUrl ? [post.imageUrl] : []);
 
   return (
     <>
@@ -223,8 +232,8 @@ export function PostCard({ post, priority = false }: PostCardProps) {
                   <DropdownMenuItem onClick={handleShare}>
                     <Send className="w-4 h-4 mr-2" /> Share Post
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast({ title: "Reported", description: "Thank you for helping our community." })}>
-                    Archive
+                  <DropdownMenuItem onClick={() => toast({ title: "Reported" })}>
+                    Report Content
                   </DropdownMenuItem>
                 </>
               )}
@@ -233,21 +242,44 @@ export function PostCard({ post, priority = false }: PostCardProps) {
         </CardHeader>
         
         <CardContent className="p-0">
-          <Link href={`/post/${post.id}`}>
+          <div className="relative w-full">
             {post.videoUrl ? (
               <div className="relative aspect-square w-full bg-black">
                 <video src={post.videoUrl} className="w-full h-full object-cover" muted autoPlay loop playsInline />
               </div>
-            ) : post.imageUrl ? (
-              <div className="relative aspect-square w-full">
-                <Image src={post.imageUrl} alt="Post content" fill className="object-cover" priority={priority} unoptimized={post.imageUrl.startsWith('data:')} />
-              </div>
+            ) : images.length > 0 ? (
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {images.map((img: string, i: number) => (
+                    <CarouselItem key={i}>
+                      <Link href={`/post/${post.id}`}>
+                        <div className="relative aspect-square w-full">
+                          <Image src={img} alt={`Post image ${i + 1}`} fill className="object-cover" priority={priority && i === 0} unoptimized={img.startsWith('data:')} />
+                        </div>
+                      </Link>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                {images.length > 1 && (
+                  <>
+                    <CarouselPrevious className="left-2 bg-background/50 backdrop-blur border-none hover:bg-background/80" />
+                    <CarouselNext className="right-2 bg-background/50 backdrop-blur border-none hover:bg-background/80" />
+                    <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none">
+                      {images.map((_: any, i: number) => (
+                        <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/50 shadow-sm" />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </Carousel>
             ) : (
-               <div className="p-6 text-lg font-medium bg-muted/30 italic min-h-[150px] flex items-center justify-center">
-                 "{post.content}"
-               </div>
+               <Link href={`/post/${post.id}`}>
+                 <div className="p-6 text-lg font-medium bg-muted/30 italic min-h-[150px] flex items-center justify-center">
+                   "{post.content}"
+                 </div>
+               </Link>
             )}
-          </Link>
+          </div>
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-4">

@@ -1,0 +1,206 @@
+
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["Admin", "NormalUser", "BusinessOwner"] },
+        "status": { "type": "string" },
+        "avatar": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email", "role", "status", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Public profile details.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "bio": { "type": "string" },
+        "profilePictureUrl": { "type": "string", "format": "uri" },
+        "location": { "type": "string" },
+        "followerCount": { "type": "number" },
+        "followingCount": { "type": "number" },
+        "friendCount": { "type": "number" }
+      },
+      "required": ["id", "userId"]
+    },
+    "Business": {
+      "title": "Business",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "locationDescription": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "isPromoted": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["active", "pending", "suspended"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Post": {
+      "title": "Post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userAvatar": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "imageUrls": { "type": "array", "items": { "type": "string" } },
+        "videoUrl": { "type": "string" },
+        "likesCount": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Comment": {
+      "title": "Comment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "postId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorAvatar": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Follow": {
+      "title": "Follow",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "followerId": { "type": "string" },
+        "followingId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "FriendRequest": {
+      "title": "FriendRequest",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Friendship": {
+      "title": "Friendship",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Message": {
+      "title": "Message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "conversationId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "content": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "lastMessageAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Notification": {
+      "title": "Notification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "recipientId": { "type": "string" },
+        "actorId": { "type": "string" },
+        "actorName": { "type": "string" },
+        "actorAvatar": { "type": "string" },
+        "type": { "type": "string", "enum": ["like", "comment", "follow", "friend_request", "friend_accept", "message"] },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Payment": {
+      "title": "Payment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "status": { "type": "string" },
+        "type": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Like": {
+      "title": "Like",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "userId": { "type": "string" },
+        "postData": { "type": "object" },
+        "createdAt": { "type": "string" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["password", "anonymous"]
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "Private user account data." },
+    "/public_user_profiles/{userId}": { "schema": "UserProfile", "description": "Public user profile info." },
+    "/businesses/{bizId}": { "schema": "Business", "description": "Business listings." },
+    "/posts/{postId}": { "schema": "Post", "description": "Community posts." },
+    "/comments/{commentId}": { "schema": "Comment", "description": "Post comments." },
+    "/follows/{followId}": { "schema": "Follow", "description": "Following relationships." },
+    "/friend_requests/{requestId}": { "schema": "FriendRequest", "description": "Friendship requests." },
+    "/friendships/{friendshipId}": { "schema": "Friendship", "description": "Mutual friendships." },
+    "/conversations/{conversationId}": { "schema": "Conversation", "description": "Chat conversations." },
+    "/messages/{messageId}": { "schema": "Message", "description": "Individual chat messages." },
+    "/notifications/{notifId}": { "schema": "Notification", "description": "User notifications." },
+    "/payments/{payId}": { "schema": "Payment", "description": "Transaction logs." },
+    "/post_likes/{likeId}": { "schema": "Like", "description": "Track post likes." },
+    "/bookmarks/{bookmarkId}": { "schema": "Bookmark", "description": "User saved posts." }
+  }
+}
