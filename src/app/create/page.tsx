@@ -8,11 +8,12 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImagePlus, MessageSquare, Briefcase, Loader2, Sparkles, X, FileVideo, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { suggestPostCaption } from '@/ai/flows/suggest-post-caption';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 function CreateContent() {
   const { user } = useUser();
@@ -132,24 +133,44 @@ function CreateContent() {
       const item = mediaItems[0];
       return (
         <div className="relative aspect-auto min-h-[250px] w-full bg-muted rounded-xl overflow-hidden group">
-          {item.type === 'video' ? <video src={item.url} className="w-full h-full object-cover" muted /> : <Image src={item.url} alt="Preview" fill className="object-cover" unoptimized />}
-          <Button size="icon" variant="destructive" className="absolute top-2 right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeMedia(0)}><X className="w-4 h-4" /></Button>
+          {item.type === 'video' ? (
+            <video src={item.url} className="w-full h-full object-cover" muted />
+          ) : (
+            <Image src={item.url} alt="Preview" fill className="object-cover" unoptimized />
+          )}
+          <Button 
+            size="icon" 
+            variant="destructive" 
+            className="absolute top-2 right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" 
+            onClick={() => removeMedia(0)}
+          >
+            <X className="w-4 h-4" />
+          </Button>
         </div>
       );
     }
 
     return (
       <div className={cn("grid gap-1 w-full bg-secondary/20 p-1 rounded-xl", 
-        count === 2 ? "grid-cols-2" : 
-        count === 3 ? "grid-cols-2" : 
-        "grid-cols-2"
+        count >= 2 ? "grid-cols-2" : "grid-cols-1"
       )}>
         {mediaItems.slice(0, 4).map((item, i) => (
           <div key={i} className={cn("relative aspect-square rounded-lg overflow-hidden group", 
             count === 3 && i === 0 && "row-span-2 aspect-auto"
           )}>
-            {item.type === 'video' ? <video src={item.url} className="w-full h-full object-cover" muted /> : <Image src={item.url} alt="Preview" fill className="object-cover" unoptimized />}
-            <Button size="icon" variant="destructive" className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeMedia(i)}><X className="w-3 h-3" /></Button>
+            {item.type === 'video' ? (
+              <video src={item.url} className="w-full h-full object-cover" muted />
+            ) : (
+              <Image src={item.url} alt="Preview" fill className="object-cover" unoptimized />
+            )}
+            <Button 
+              size="icon" 
+              variant="destructive" 
+              className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" 
+              onClick={() => removeMedia(i)}
+            >
+              <X className="w-3 h-3" />
+            </Button>
             {i === 3 && count > 4 && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-bold text-xl">
                 +{count - 3}
