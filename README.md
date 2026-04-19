@@ -1,3 +1,4 @@
+
 # F-Moon | Ethiopian Social & Business Discovery
 
 F-Moon is a modern, real-time social platform designed for the Ethiopian community to discover local businesses, share updates, and connect with others.
@@ -36,12 +37,17 @@ git push -u origin main
    - `NEXT_PUBLIC_FIREBASE_APP_ID`
    - `GOOGLE_GENAI_API_KEY` (CRITICAL for AI features)
 
-### 3. CRITICAL: Authorize Domain
-If you see a `400 Bad Request` or `Unauthorized Domain` error during login:
+### 3. CRITICAL: Authorize Domain & Emails
+If you see a `400 Bad Request` or password reset emails aren't arriving:
 1. Go to the [Firebase Console](https://console.firebase.google.com/).
 2. Select your project.
-3. Navigate to **Authentication** > **Settings** > **Authorized Domains**.
-4. Click **Add Domain** and add your Vercel URL (e.g., `f-moon-*.vercel.app`).
+3. **Domain Authorization**:
+   - Navigate to **Authentication** > **Settings** > **Authorized Domains**.
+   - Click **Add Domain** and add your Vercel URL (e.g., `f-moon-*.vercel.app`).
+4. **Email Configuration**:
+   - Navigate to **Authentication** > **Templates**.
+   - Ensure the **Password Reset** template is enabled.
+   - (Recommended) Verify your project's sender email address to ensure deliverability.
 
 ## Key Features
 

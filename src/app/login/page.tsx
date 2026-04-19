@@ -19,7 +19,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Phone, Mail, Lock, User, ArrowRight, Loader2, MapPin, AlignLeft } from 'lucide-react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger 
+} from '@/components/ui/dialog';
+import { Phone, Mail, Lock, User, ArrowRight, Loader2, MapPin, AlignLeft, Send } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,6 +40,8 @@ export default function AuthPage() {
   
   const [method, setMethod] = useState<'email' | 'phone'>('email');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
   
   // Form states
   const [email, setEmail] = useState('');
@@ -60,8 +71,9 @@ export default function AuthPage() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) {
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) {
       toast({ 
         title: "Email Required", 
         description: "Please enter your email address to reset your password.", 
@@ -72,15 +84,18 @@ export default function AuthPage() {
 
     setIsLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email);
+      await sendPasswordResetEmail(auth, resetEmail);
       toast({ 
         title: "Reset Link Sent", 
-        description: "Check your inbox for password reset instructions." 
+        description: `Instructions have been sent to ${resetEmail}. Please check your inbox and spam folder.` 
       });
+      setIsResetOpen(false);
     } catch (error: any) {
       toast({ 
         title: "Error", 
-        description: error.message, 
+        description: error.message === 'auth/user-not-found' 
+          ? "No account found with this email." 
+          : error.message, 
         variant: "destructive" 
       });
     } finally {
@@ -288,14 +303,48 @@ export default function AuthPage() {
                       />
                     </div>
                     <div className="text-right">
-                      <button 
-                        type="button" 
-                        onClick={handleForgotPassword}
-                        className="text-[10px] text-primary font-bold hover:underline uppercase tracking-wider disabled:opacity-50"
-                        disabled={isLoading}
-                      >
-                        Forgot password?
-                      </button>
+                      <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
+                        <DialogTrigger asChild>
+                          <button 
+                            type="button" 
+                            className="text-[10px] text-primary font-bold hover:underline uppercase tracking-wider disabled:opacity-50"
+                            disabled={isLoading}
+                          >
+                            Forgot password?
+                          </button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle className="font-headline">Reset Password</DialogTitle>
+                            <DialogDescription>
+                              Enter your email address and we'll send you a link to reset your password.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <form onSubmit={handleForgotPassword} className="space-y-4 py-4">
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input 
+                                type="email" 
+                                placeholder="Email address" 
+                                value={resetEmail} 
+                                onChange={(e) => setResetEmail(e.target.value)}
+                                className="pl-10"
+                                required
+                              />
+                            </div>
+                            <DialogFooter>
+                              <Button 
+                                type="submit" 
+                                className="w-full bg-primary font-bold" 
+                                disabled={isLoading}
+                              >
+                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                                Send Reset Link
+                              </Button>
+                            </DialogFooter>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
                   
