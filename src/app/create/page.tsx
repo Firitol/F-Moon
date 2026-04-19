@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ImagePlus, MessageSquare, Briefcase, Loader2, Sparkles, X, FileVideo } from 'lucide-react';
+import { ImagePlus, MessageSquare, Briefcase, Loader2, Sparkles, X, FileVideo, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { suggestPostCaption } from '@/ai/flows/suggest-post-caption';
 import Image from 'next/image';
@@ -123,6 +123,48 @@ function CreateContent() {
     }
   };
 
+  // Preview Grid Helper (Facebook Style)
+  const renderPreviewGrid = () => {
+    const count = mediaItems.length;
+    if (count === 0) return null;
+
+    if (count === 1) {
+      const item = mediaItems[0];
+      return (
+        <div className="relative aspect-auto min-h-[250px] w-full bg-muted rounded-xl overflow-hidden group">
+          {item.type === 'video' ? <video src={item.url} className="w-full h-full object-cover" muted /> : <Image src={item.url} alt="Preview" fill className="object-cover" unoptimized />}
+          <Button size="icon" variant="destructive" className="absolute top-2 right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeMedia(0)}><X className="w-4 h-4" /></Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className={cn("grid gap-1 w-full bg-secondary/20 p-1 rounded-xl", 
+        count === 2 ? "grid-cols-2" : 
+        count === 3 ? "grid-cols-2" : 
+        "grid-cols-2"
+      )}>
+        {mediaItems.slice(0, 4).map((item, i) => (
+          <div key={i} className={cn("relative aspect-square rounded-lg overflow-hidden group", 
+            count === 3 && i === 0 && "row-span-2 aspect-auto"
+          )}>
+            {item.type === 'video' ? <video src={item.url} className="w-full h-full object-cover" muted /> : <Image src={item.url} alt="Preview" fill className="object-cover" unoptimized />}
+            <Button size="icon" variant="destructive" className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeMedia(i)}><X className="w-3 h-3" /></Button>
+            {i === 3 && count > 4 && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-bold text-xl">
+                +{count - 3}
+              </div>
+            )}
+          </div>
+        ))}
+        <label htmlFor="file-upload-more" className="aspect-square flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer hover:bg-primary/5 transition-all bg-card/50">
+          <Plus className="w-6 h-6 text-primary opacity-60" />
+          <input type="file" multiple accept="image/*,video/*" id="file-upload-more" className="hidden" onChange={handleFileChange} />
+        </label>
+      </div>
+    );
+  };
+
   return (
     <main className="max-w-2xl mx-auto p-4">
       <Card className="border-none shadow-2xl bg-card">
@@ -143,43 +185,7 @@ function CreateContent() {
             <div className="space-y-6">
               <div className="bg-muted/50 rounded-2xl p-4 border-2 border-dashed border-border flex flex-col gap-4">
                 {mediaItems.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {mediaItems.map((item, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-xl overflow-hidden shadow-sm group">
-                        {item.type === 'video' ? (
-                          <video src={item.url} className="w-full h-full object-cover" muted />
-                        ) : (
-                          <Image 
-                            src={item.url} 
-                            alt="Upload preview" 
-                            fill 
-                            className="object-cover" 
-                            unoptimized 
-                          />
-                        )}
-                        <Button 
-                          size="icon" 
-                          variant="destructive" 
-                          className="absolute top-2 right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                          onClick={() => removeMedia(idx)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    <label htmlFor="file-upload-more" className="aspect-square flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer hover:bg-secondary/40 transition-all bg-card/50">
-                      <ImagePlus className="w-8 h-8 text-primary opacity-60" />
-                      <span className="text-[10px] font-bold mt-2 uppercase tracking-widest text-primary">Add More</span>
-                      <input 
-                        type="file" 
-                        multiple 
-                        accept="image/*,video/*" 
-                        id="file-upload-more" 
-                        className="hidden" 
-                        onChange={handleFileChange} 
-                      />
-                    </label>
-                  </div>
+                  renderPreviewGrid()
                 ) : (
                   <div className="text-center space-y-6 py-12">
                     <div className="flex justify-center gap-8">
@@ -188,7 +194,7 @@ function CreateContent() {
                     </div>
                     <div className="space-y-3">
                       <h3 className="font-bold text-lg">Upload High Quality Photos</h3>
-                      <p className="text-sm text-muted-foreground">Select multiple images to create a carousel.</p>
+                      <p className="text-sm text-muted-foreground">Select multiple images to create a gallery.</p>
                       <input 
                         type="file" 
                         multiple 

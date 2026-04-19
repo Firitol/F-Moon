@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck, Pencil, Trash2, Archive, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck, Pencil, Trash2, Archive, Loader2, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -37,17 +37,90 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 
 interface PostCardProps {
   post: any;
   priority?: boolean;
+}
+
+function PhotoGrid({ images, postId }: { images: string[], postId: string }) {
+  const count = images.length;
+  
+  if (count === 1) {
+    return (
+      <Link href={`/post/${postId}`} className="block w-full">
+        <div className="relative aspect-auto min-h-[300px] w-full bg-muted">
+          <Image 
+            src={images[0]} 
+            alt="Post" 
+            width={800} 
+            height={800}
+            className="w-full h-auto object-contain"
+            unoptimized={images[0].startsWith('data:')}
+          />
+        </div>
+      </Link>
+    );
+  }
+
+  if (count === 2) {
+    return (
+      <Link href={`/post/${postId}`} className="grid grid-cols-2 gap-0.5 w-full bg-border border-y border-border">
+        {images.map((img, i) => (
+          <div key={i} className="relative aspect-[3/4] overflow-hidden">
+            <Image src={img} alt="Post" fill className="object-cover" unoptimized={img.startsWith('data:')} />
+          </div>
+        ))}
+      </Link>
+    );
+  }
+
+  if (count === 3) {
+    return (
+      <Link href={`/post/${postId}`} className="grid grid-cols-2 gap-0.5 w-full bg-border border-y border-border">
+        <div className="relative aspect-[3/4] overflow-hidden col-span-1">
+          <Image src={images[0]} alt="Post" fill className="object-cover" unoptimized={images[0].startsWith('data:')} />
+        </div>
+        <div className="grid grid-rows-2 gap-0.5 col-span-1">
+          <div className="relative aspect-square overflow-hidden">
+            <Image src={images[1]} alt="Post" fill className="object-cover" unoptimized={images[1].startsWith('data:')} />
+          </div>
+          <div className="relative aspect-square overflow-hidden">
+            <Image src={images[2]} alt="Post" fill className="object-cover" unoptimized={images[2].startsWith('data:')} />
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  if (count === 4) {
+    return (
+      <Link href={`/post/${postId}`} className="grid grid-cols-2 gap-0.5 w-full bg-border border-y border-border">
+        {images.slice(0, 4).map((img, i) => (
+          <div key={i} className="relative aspect-square overflow-hidden">
+            <Image src={img} alt="Post" fill className="object-cover" unoptimized={img.startsWith('data:')} />
+          </div>
+        ))}
+      </Link>
+    );
+  }
+
+  // 5 or more photos
+  return (
+    <Link href={`/post/${postId}`} className="grid grid-cols-2 gap-0.5 w-full bg-border border-y border-border">
+      {images.slice(0, 3).map((img, i) => (
+        <div key={i} className="relative aspect-square overflow-hidden">
+          <Image src={img} alt="Post" fill className="object-cover" unoptimized={img.startsWith('data:')} />
+        </div>
+      ))}
+      <div className="relative aspect-square overflow-hidden group">
+        <Image src={images[3]} alt="Post" fill className="object-cover opacity-60" unoptimized={images[3].startsWith('data:')} />
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white group-hover:bg-black/50 transition-colors">
+          <span className="text-3xl font-bold">+{count - 3}</span>
+        </div>
+      </div>
+    </Link>
+  );
 }
 
 export function PostCard({ post, priority = false }: PostCardProps) {
@@ -247,38 +320,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
                 <video src={post.videoUrl} className="w-full h-full object-cover" muted autoPlay loop playsInline />
               </div>
             ) : images.length > 0 ? (
-              <Carousel className="w-full">
-                <CarouselContent>
-                  {images.map((img: string, i: number) => (
-                    <CarouselItem key={i}>
-                      <Link href={`/post/${post.id}`}>
-                        <div className="relative aspect-square w-full bg-muted">
-                          <Image 
-                            src={img} 
-                            alt={`Post image ${i + 1}`} 
-                            fill 
-                            className="object-cover" 
-                            priority={priority && i === 0} 
-                            unoptimized={img.startsWith('data:')}
-                            sizes="(max-width: 600px) 100vw, 600px"
-                          />
-                        </div>
-                      </Link>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                {images.length > 1 && (
-                  <>
-                    <CarouselPrevious className="left-3 bg-background/60 backdrop-blur-md border-none hover:bg-background/80 h-8 w-8 shadow-xl" />
-                    <CarouselNext className="right-3 bg-background/60 backdrop-blur-md border-none hover:bg-background/80 h-8 w-8 shadow-xl" />
-                    <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none">
-                      {images.map((_: any, i: number) => (
-                        <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/70 shadow-sm border border-black/10" />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </Carousel>
+              <PhotoGrid images={images} postId={post.id} />
             ) : (
                <Link href={`/post/${post.id}`}>
                  <div className="p-10 text-xl font-medium bg-gradient-to-br from-primary/5 to-accent/5 italic min-h-[200px] flex items-center justify-center text-center">
