@@ -2,13 +2,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Loader2, Copy } from 'lucide-react';
+import { Sparkles, Loader2, Copy, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { generatePromotionalText } from '@/ai/flows/generate-promotional-text-flow';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export function PromotionGenerator() {
   const [loading, setLoading] = useState(false);
@@ -20,6 +21,7 @@ export function PromotionGenerator() {
   });
   const [result, setResult] = useState('');
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleGenerate = async () => {
     if (!promptData.businessName || !promptData.offerings) {
@@ -46,6 +48,11 @@ export function PromotionGenerator() {
   const copyToClipboard = () => {
     navigator.clipboard.writeText(result);
     toast({ title: "Success", description: "Copied to clipboard!" });
+  };
+
+  const handlePostRedirect = () => {
+    const encodedText = encodeURIComponent(result);
+    router.push(`/create?text=${encodedText}&tab=business`);
   };
 
   return (
@@ -94,16 +101,26 @@ export function PromotionGenerator() {
         </Button>
 
         {result && (
-          <div className="mt-4 p-3 bg-card border rounded-md relative group">
+          <div className="mt-4 p-3 bg-card border rounded-md relative group space-y-3">
             <p className="text-sm italic text-foreground whitespace-pre-wrap">{result}</p>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={copyToClipboard}
-            >
-              <Copy className="w-4 h-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 text-xs"
+                onClick={copyToClipboard}
+              >
+                <Copy className="w-3.5 h-3.5 mr-2" /> Copy
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="flex-1 text-xs bg-primary"
+                onClick={handlePostRedirect}
+              >
+                <Send className="w-3.5 h-3.5 mr-2" /> Post Update
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
