@@ -31,7 +31,7 @@ import {
   DialogFooter,
   DialogTrigger 
 } from '@/components/ui/dialog';
-import { Phone, Mail, Lock, User, ArrowRight, Loader2, MapPin, AlignLeft, Send, CheckCircle2 } from 'lucide-react';
+import { Phone, Mail, Lock, User, ArrowRight, Loader2, MapPin, AlignLeft, Send, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -74,6 +74,9 @@ export default function AuthPage() {
     if (!recaptchaVerifierRef.current && auth) {
       recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
+        'callback': () => {
+          console.log('Recaptcha verified');
+        }
       });
     }
   }, [auth]);
@@ -102,14 +105,21 @@ export default function AuthPage() {
       if (resetMethod === 'email') {
         if (!resetEmail) throw new Error("Please enter your email.");
         await sendPasswordResetEmail(auth, resetEmail);
-        toast({ title: "Email Sent", description: "Instructions sent to your email." });
+        toast({ 
+          title: "Email Sent", 
+          description: "Check your Inbox and Spam/Junk folder for the reset link." 
+        });
         setIsResetOpen(false);
       } else {
-        if (!resetPhone || !recaptchaVerifierRef.current) throw new Error("Please enter your phone.");
+        if (!resetPhone) throw new Error("Please enter your phone.");
+        if (!resetPhone.startsWith('+')) throw new Error("Please use international format: +251...");
+        
+        if (!recaptchaVerifierRef.current) throw new Error("System is initializing, please try again.");
+        
         const result = await signInWithPhoneNumber(auth, resetPhone, recaptchaVerifierRef.current);
         setConfirmationResult(result);
         setIsOtpSent(true);
-        toast({ title: "OTP Sent", description: "Verification code sent to your phone." });
+        toast({ title: "OTP Sent", description: `A 6-digit code was sent to ${resetPhone}` });
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -125,11 +135,11 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       await confirmationResult.confirm(resetOtp);
-      toast({ title: "Verified", description: "Phone verified! You can now reset your password in settings." });
+      toast({ title: "Verified", description: "Phone verified! You are now logged in and can update your password in Settings." });
       setIsResetOpen(false);
       router.push('/');
     } catch (error: any) {
-      toast({ title: "Verification Failed", description: "Invalid code.", variant: "destructive" });
+      toast({ title: "Verification Failed", description: "Invalid code. Please try again.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -137,19 +147,25 @@ export default function AuthPage() {
 
   const handleStartRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !displayName || !phone || !recaptchaVerifierRef.current) {
+    if (!email || !password || !displayName || !phone) {
        toast({ title: "Missing Info", description: "Please fill all required fields.", variant: "destructive" });
        return;
     }
 
+    if (!phone.startsWith('+')) {
+      toast({ title: "Invalid Format", description: "Phone must start with + (e.g., +251...)", variant: "destructive" });
+      return;
+    }
+
     setIsLoading(true);
     try {
+      if (!recaptchaVerifierRef.current) throw new Error("System initializing...");
       const result = await signInWithPhoneNumber(auth, phone, recaptchaVerifierRef.current);
       setConfirmationResult(result);
       setShowOtpField(true);
-      toast({ title: "Step 1/2 Complete", description: "Please verify your phone number to continue." });
+      toast({ title: "Code Sent", description: "Please enter the 6-digit verification code." });
     } catch (error: any) {
-      toast({ title: "Verification Failed", description: error.message, variant: "destructive" });
+      toast({ title: "Failed to Send Code", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -267,7 +283,7 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background relative overflow-hidden">
-      <div id="recaptcha-container"></div>
+      <div id="recaptcha-container" className="fixed bottom-0"></div>
       
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-3xl" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/5 rounded-full blur-3xl" />
@@ -328,7 +344,7 @@ export default function AuthPage() {
                         <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input 
                           type="tel"
-                          placeholder="+251 ..." 
+                          placeholder="+251..." 
                           className="pl-10 h-11" 
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
@@ -350,7 +366,10 @@ export default function AuthPage() {
                   </div>
                   
                   <div className="flex justify-end">
-                    <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
+                    <Dialog open={isResetOpen} onOpenChange={(open) => {
+                      setIsResetOpen(open);
+                      if (!open) setIsOtpSent(false);
+                    }}>
                       <DialogTrigger asChild>
                         <button type="button" className="text-[10px] text-primary font-bold hover:underline uppercase tracking-wider">
                           Forgot password?
@@ -358,41 +377,56 @@ export default function AuthPage() {
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-md">
                         <DialogHeader>
-                          <DialogTitle>Reset Password</DialogTitle>
-                          <DialogDescription>Choose your recovery method below.</DialogDescription>
+                          <DialogTitle>Account Recovery</DialogTitle>
+                          <DialogDescription>Choose how you want to recover your access.</DialogDescription>
                         </DialogHeader>
                         <div className="py-4 space-y-6">
-                          <RadioGroup value={resetMethod} onValueChange={(v: any) => setResetMethod(v)} className="grid grid-cols-2 gap-4">
+                          <RadioGroup value={resetMethod} onValueChange={(v: any) => {
+                            setResetMethod(v);
+                            setIsOtpSent(false);
+                          }} className="grid grid-cols-2 gap-4">
                             <div className="flex items-center space-x-2 border p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
                               <RadioGroupItem value="email" id="reset-email" />
-                              <Label htmlFor="reset-email" className="cursor-pointer">Email</Label>
+                              <Label htmlFor="reset-email" className="cursor-pointer">Email Link</Label>
                             </div>
                             <div className="flex items-center space-x-2 border p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
                               <RadioGroupItem value="phone" id="reset-phone" />
-                              <Label htmlFor="reset-phone" className="cursor-pointer">Phone</Label>
+                              <Label htmlFor="reset-phone" className="cursor-pointer">Phone SMS</Label>
                             </div>
                           </RadioGroup>
 
                           {!isOtpSent ? (
                             <div className="space-y-4">
                               {resetMethod === 'email' ? (
-                                <Input placeholder="Enter your email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
+                                <div className="space-y-2">
+                                  <Label>Your Account Email</Label>
+                                  <Input placeholder="example@gmail.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
+                                </div>
                               ) : (
-                                <Input placeholder="+251 Phone Number" value={resetPhone} onChange={(e) => setResetPhone(e.target.value)} />
+                                <div className="space-y-2">
+                                  <Label>Registered Phone Number</Label>
+                                  <Input placeholder="+251..." value={resetPhone} onChange={(e) => setResetPhone(e.target.value)} />
+                                  <p className="text-[10px] text-muted-foreground italic">Must include country code (e.g. +251)</p>
+                                </div>
                               )}
-                              <Button className="w-full" onClick={handleSendResetCode} disabled={isLoading}>
+                              <Button className="w-full bg-primary" onClick={handleSendResetCode} disabled={isLoading}>
                                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
-                                Send Verification
+                                Send Reset Verification
                               </Button>
                             </div>
                           ) : (
                             <div className="space-y-4">
-                              <Label className="text-center block">Enter 6-digit OTP</Label>
-                              <Input placeholder="Verification Code" value={resetOtp} onChange={(e) => setResetOtp(e.target.value)} className="text-center tracking-[1em] font-bold" />
-                              <Button className="w-full" onClick={handleVerifyResetOtp} disabled={isLoading}>
-                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-                                Verify & Continue
-                              </Button>
+                              <Label className="text-center block">Enter 6-digit code sent to {resetPhone}</Label>
+                              <Input placeholder="0 0 0 0 0 0" value={resetOtp} onChange={(e) => setResetOtp(e.target.value)} className="text-center tracking-[1em] font-bold text-xl h-12" maxLength={6} />
+                              <div className="flex flex-col gap-2">
+                                <Button className="w-full bg-primary" onClick={handleVerifyResetOtp} disabled={isLoading}>
+                                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                                  Verify & Log In
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => setIsOtpSent(false)} className="text-xs">
+                                  <RefreshCw className="w-3 h-3 mr-2" /> Re-enter number or Resend
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -420,7 +454,7 @@ export default function AuthPage() {
                       </div>
                       <div className="relative">
                         <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input type="tel" placeholder="Phone (+251...)" className="pl-10 h-11" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                        <Input type="tel" placeholder="+251..." className="pl-10 h-11" value={phone} onChange={(e) => setPhone(e.target.value)} required />
                       </div>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -428,7 +462,7 @@ export default function AuthPage() {
                       </div>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Location" className="pl-10 h-11" value={location} onChange={(e) => setLocation(e.target.value)} />
+                        <Input placeholder="Location (e.g. Addis Ababa)" className="pl-10 h-11" value={location} onChange={(e) => setLocation(e.target.value)} />
                       </div>
                       <div className="relative">
                         <AlignLeft className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -436,28 +470,28 @@ export default function AuthPage() {
                       </div>
                     </div>
                     <Button type="submit" className="w-full bg-primary h-11" disabled={isLoading}>
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Verify Phone & Continue"}
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Verify Phone & Join"}
                     </Button>
                   </form>
                 ) : (
                   <form onSubmit={handleCompleteRegistration} className="space-y-6 py-4">
                     <div className="text-center space-y-2">
                       <h3 className="font-bold">Verify your Phone</h3>
-                      <p className="text-xs text-muted-foreground">Enter the code sent to {phone}</p>
+                      <p className="text-xs text-muted-foreground">We sent a 6-digit code to {phone}</p>
                     </div>
                     <Input 
-                      placeholder="6-digit Code" 
+                      placeholder="0 0 0 0 0 0" 
                       className="text-center text-2xl tracking-[0.5em] font-bold h-14" 
                       value={verificationCode} 
                       onChange={(e) => setVerificationCode(e.target.value)} 
                       maxLength={6}
                     />
                     <div className="flex flex-col gap-2">
-                      <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Verify & Complete Joining"}
+                      <Button type="submit" className="w-full bg-primary h-11" disabled={isLoading}>
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Complete Registration"}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => setShowOtpField(false)} disabled={isLoading}>
-                        Back to Edit Details
+                        Change Number or Resend
                       </Button>
                     </div>
                   </form>

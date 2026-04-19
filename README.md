@@ -37,17 +37,24 @@ git push -u origin main
    - `NEXT_PUBLIC_FIREBASE_APP_ID`
    - `GOOGLE_GENAI_API_KEY` (CRITICAL for AI features)
 
-### 3. CRITICAL: Authorize Domain & Emails
-If you see a `400 Bad Request` or password reset emails aren't arriving:
+### 3. CRITICAL: Firebase Console Configuration
+If authentication codes or reset emails are not arriving, follow these steps:
+
+#### Domain Authorization
 1. Go to the [Firebase Console](https://console.firebase.google.com/).
 2. Select your project.
-3. **Domain Authorization**:
-   - Navigate to **Authentication** > **Settings** > **Authorized Domains**.
-   - Click **Add Domain** and add your Vercel URL (e.g., `f-moon-*.vercel.app`).
-4. **Email Configuration**:
-   - Navigate to **Authentication** > **Templates**.
-   - Ensure the **Password Reset** template is enabled.
-   - (Recommended) Verify your project's sender email address to ensure deliverability.
+3. Navigate to **Authentication** > **Settings** > **Authorized Domains**.
+4. Click **Add Domain** and add your Vercel URL (e.g., `f-moon-*.vercel.app`).
+
+#### SMS (Phone) Authentication
+1. Navigate to **Authentication** > **Sign-in method**.
+2. Click **Add new provider** and select **Phone**.
+3. Enable it. Ensure you have SMS quota or are using the Free Spark plan.
+
+#### Email Configuration
+1. Navigate to **Authentication** > **Templates**.
+2. Ensure the **Password Reset** template is enabled.
+3. Check your **Spam/Junk** folder if the email doesn't appear in your Inbox.
 
 ## Key Features
 
